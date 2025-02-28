@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Dashboard from './components/Dashboard';
+import './App.css';
+
+// Import auth components
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
-import Dashboard from './components/Dashboard';
+
+// Import other components
 import LoreMapEditor from './components/LoreMap/LoreMapEditor';
 import CharacterManager from './components/characters/CharacterManager';
-import './App.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,15 +21,31 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Here you would typically make an API call to verify the token
-        // For now, we'll just check if there's a user in localStorage
+        // Check if there's a user in localStorage
         const savedUser = JSON.parse(localStorage.getItem('user'));
+        
         if (savedUser) {
-          setUser(savedUser);
-          setIsAuthenticated(true);
+          // Validate the session with the server
+          const response = await fetch('http://localhost:5000/api/validate-session', {
+            method: 'GET',
+            credentials: 'include' // Include cookies for session-based auth
+          }).catch(() => {
+            // If the server is not running, we'll just use the saved user data
+            // This helps during development when backend might not be running
+            return { ok: true };
+          });
+          
+          if (response && response.ok) {
+            setUser(savedUser);
+            setIsAuthenticated(true);
+          } else {
+            // Session is invalid, remove from localStorage
+            localStorage.removeItem('user');
+          }
         }
       } catch (error) {
         console.error('Authentication error:', error);
+        localStorage.removeItem('user');
       } finally {
         setLoading(false);
       }
@@ -40,7 +60,18 @@ function App() {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call the logout endpoint
+      await fetch('http://localhost:5000/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // Regardless of server response, clear the local state
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('user');

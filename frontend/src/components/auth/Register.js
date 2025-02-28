@@ -32,16 +32,32 @@ const Register = () => {
     }
     
     try {
-      // In a real app, you would make an API request to register
-      // For now, just simulate a successful registration
-      console.log('Registration data:', formData);
+      // Connect to your Flask backend
+      const response = await fetch('http://localhost:5000/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        })
+      });
       
-      // Redirect to login after successful registration
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      
+      // Show success and redirect to login
+      alert('Registration successful! You can now log in.');
       navigate('/login');
       
     } catch (err) {
       console.error('Registration error:', err);
-      setError('An error occurred during registration. Please try again.');
+      setError(err.message || 'An error occurred during registration. Please try again.');
     } finally {
       setLoading(false);
     }

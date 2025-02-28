@@ -9,7 +9,9 @@ import json
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-for-testing')
-CORS(app)  # Enable CORS for all routes
+
+# Configure CORS to allow requests from React frontend
+CORS(app, supports_credentials=True, origins=['http://localhost:3000'], allow_headers=['Content-Type'])
 
 # Configure database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lorekeep.db'
@@ -370,6 +372,23 @@ def create_connection(lore_map_id):
         "description": new_connection.description,
         "message": "Connection created successfully!"
     }), 201
+
+# Add a session validation endpoint
+@app.route('/api/validate-session', methods=['GET'])
+def validate_session():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "message": "Session is valid"
+    })
 
 # Main application entry point
 if __name__ == '__main__':

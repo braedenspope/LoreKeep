@@ -23,24 +23,37 @@ const Login = ({ onLogin }) => {
     setError('');
     
     try {
-      // For demo purposes, just use dummy data
-      // In a real app, you would make an API request here
-      if (credentials.username === 'test' && credentials.password === 'password') {
-        const userData = {
-          id: 1,
-          username: 'test',
-          email: 'test@example.com'
-        };
-        
-        // Call the onLogin function from props to update auth state
-        onLogin(userData);
-        navigate('/dashboard');
-      } else {
-        setError('Invalid username or password');
+      // Connect to your Flask backend
+      const response = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password
+        }),
+        credentials: 'include' // Include cookies for session-based auth
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
+      
+      // Store user data and update auth state
+      const userData = {
+        id: data.id,
+        username: data.username
+      };
+      
+      onLogin(userData);
+      navigate('/dashboard');
+      
     } catch (err) {
       console.error('Login error:', err);
-      setError('An error occurred during login. Please try again.');
+      setError(err.message || 'An error occurred during login. Please try again.');
     } finally {
       setLoading(false);
     }
