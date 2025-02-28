@@ -4,7 +4,7 @@ import Navbar from './components/Navbar';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/Dashboard';
-import LoreMapEditor from './components/loremap/LoreMapEditor';
+import LoreMapEditor from './components/LoreMap/LoreMapEditor';
 import CharacterManager from './components/characters/CharacterManager';
 import './App.css';
 
