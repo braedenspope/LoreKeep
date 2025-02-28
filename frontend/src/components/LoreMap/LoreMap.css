@@ -1,0 +1,178 @@
+/* LoreMap.css */
+.lore-map-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .lore-map-canvas {
+    position: relative;
+    flex-grow: 1;
+    background-color: #f5f5f5;
+    background-image: 
+      linear-gradient(rgba(200, 200, 200, 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200, 200, 200, 0.5) 1px, transparent 1px);
+    background-size: 20px 20px;
+    overflow: auto;
+    cursor: move;
+    border: 1px solid #ddd;
+    margin: 10px;
+    border-radius: 4px;
+  }
+  
+  .event-node {
+    position: absolute;
+    width: 150px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    user-select: none;
+    z-index: 10;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  
+  .event-node:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .event-node.selected {
+    border: 2px solid #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+  }
+  
+  .event-node.party-location {
+    border-color: #2ecc71;
+    background-color: #eafaf1;
+  }
+  
+  .event-node h3 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .event-location {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+  }
+  
+  .event-details-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    z-index: 100;
+  }
+  
+  .event-details-panel h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+  
+  .party-badge {
+    display: inline-block;
+    background-color: #2ecc71;
+    color: white;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-top: 10px;
+  }
+  
+  .event-details-panel button {
+    margin-right: 10px;
+    margin-top: 15px;
+    padding: 6px 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .event-details-panel button:hover {
+    background-color: #2980b9;
+  }
+  
+  .create-event-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    width: 400px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+  }
+  
+  .create-event-modal h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  
+  .form-group input[type="text"],
+  .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+  }
+  
+  .form-group textarea {
+    height: 100px;
+    resize: vertical;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  
+  .modal-actions button {
+    margin-left: 10px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .modal-actions button:first-child {
+    background-color: #3498db;
+    color: white;
+  }
+  
+  .modal-actions button:last-child {
+    background-color: #f1f1f1;
+    color: #333;
+  }
+  
+  .modal-actions button:hover {
+    opacity: 0.9;
+  }
