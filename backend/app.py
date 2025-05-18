@@ -11,7 +11,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-for-testing')
 
 # Configure CORS to allow requests from React frontend
-CORS(app, supports_credentials=True, origins=['http://localhost:3000'], allow_headers=['Content-Type'])
+CORS(app, 
+     supports_credentials=True, 
+     origins=['http://localhost:3000'], 
+     allow_headers=['Content-Type'], 
+     expose_headers=['Set-Cookie'],
+     allow_methods=['GET', 'POST', 'PUT', 'DELETE'])
 
 # Configure database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lorekeep.db'

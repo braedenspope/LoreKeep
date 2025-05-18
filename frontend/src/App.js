@@ -17,35 +17,34 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is logged in
+  // In your App.js - Add session expiration handling
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check if there's a user in localStorage
+        // Check localStorage first for user data
         const savedUser = JSON.parse(localStorage.getItem('user'));
         
         if (savedUser) {
-          // Validate the session with the server
+          // Then validate with backend
           const response = await fetch('http://localhost:5000/api/validate-session', {
             method: 'GET',
-            credentials: 'include' // Include cookies for session-based auth
-          }).catch(() => {
-            // If the server is not running, we'll just use the saved user data
-            // This helps during development when backend might not be running
-            return { ok: true };
+            credentials: 'include'
           });
           
-          if (response && response.ok) {
+          if (response.ok) {
             setUser(savedUser);
             setIsAuthenticated(true);
           } else {
-            // Session is invalid, remove from localStorage
+            // Session expired or invalid
             localStorage.removeItem('user');
+            setUser(null);
+            setIsAuthenticated(false);
           }
         }
       } catch (error) {
-        console.error('Authentication error:', error);
+        console.error('Authentication validation error:', error);
         localStorage.removeItem('user');
+        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }

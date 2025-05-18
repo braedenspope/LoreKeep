@@ -15,56 +15,57 @@ const Dashboard = ({ user }) => {
     fetchLoreMaps();
   }, []);
 
+  // Update the fetchLoreMaps function in Dashboard.js
   const fetchLoreMaps = async () => {
+    setLoading(true);
     try {
-      // In a real application, you would fetch from your API
-      // For now, we'll use sample data
-      const sampleData = [
-        {
-          id: 1,
-          title: 'Waterdeep Campaign',
-          description: 'Urban adventure in the City of Splendors',
-          created_at: '2025-02-15T10:30:00',
-          updated_at: '2025-02-20T14:45:00'
-        },
-        {
-          id: 2,
-          title: 'Lost Mine of Phandelver',
-          description: 'Classic starter adventure in the Sword Coast',
-          created_at: '2025-01-10T08:20:00',
-          updated_at: '2025-02-18T11:15:00'
-        }
-      ];
+      const response = await fetch('http://localhost:5000/api/loremaps', {
+        method: 'GET',
+        credentials: 'include'
+      });
       
-      setLoreMaps(sampleData);
-      setLoading(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns');
+      }
+      
+      const data = await response.json();
+      setLoreMaps(data);
     } catch (err) {
       console.error('Failed to fetch lore maps:', err);
       setError('Failed to load your campaigns. Please try again later.');
+    } finally {
       setLoading(false);
     }
   };
 
+  // Update handleCreateMap in Dashboard.js
   const handleCreateMap = async (e) => {
     e.preventDefault();
     
     try {
-      // In a real application, you would send this to your API
-      // For now, we'll just simulate it
-      const newMap = {
-        id: loreMaps.length + 1,
-        title: newMapData.title,
-        description: newMapData.description,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const response = await fetch('http://localhost:5000/api/loremaps', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: newMapData.title,
+          description: newMapData.description,
+        })
+      });
       
-      setLoreMaps([...loreMaps, newMap]);
+      if (!response.ok) {
+        throw new Error('Failed to create campaign');
+      }
+      
+      const data = await response.json();
+      setLoreMaps([...loreMaps, data]);
       setShowNewMapForm(false);
       setNewMapData({ title: '', description: '' });
       
       // Navigate to the new map
-      navigate(`/loremap/${newMap.id}`);
+      navigate(`/loremap/${data.id}`);
     } catch (err) {
       console.error('Failed to create lore map:', err);
       setError('Failed to create new campaign. Please try again.');
