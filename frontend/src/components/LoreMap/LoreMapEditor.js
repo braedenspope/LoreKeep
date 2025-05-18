@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import LoreMap from './LoreMap';
 import './LoreMapEditor.css';
 
@@ -8,57 +8,133 @@ const LoreMapEditor = ({ user }) => {
   const [loreMap, setLoreMap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchLoreMap();
-  }, [id]);
-
-  const fetchLoreMap = async () => {
+  // Use useCallback to memoize the fetchLoreMap function
+  const fetchLoreMap = useCallback(async () => {
     try {
-      // In a real app, you would fetch this from your API
-      // For now, we'll simulate a fetch with a timeout
-      setTimeout(() => {
-        const sampleMap = {
-          id: parseInt(id),
-          title: `Campaign #${id}`,
-          description: 'A sample campaign for development',
-          events: [
-            {
-              id: 1,
-              title: 'Campaign Start',
-              description: 'The party meets at a tavern in Waterdeep',
-              location: 'Waterdeep',
-              position: { x: 300, y: 100 },
-              isPartyLocation: true,
-            },
-            {
-              id: 2,
-              title: 'Meeting the Quest Giver',
-              description: 'Lord Neverember offers a quest to investigate strange happenings',
-              location: 'Castle Ward',
-              position: { x: 400, y: 200 },
-              isPartyLocation: false,
-            },
-          ],
-          connections: [
-            { id: 1, from: 1, to: 2 }
-          ]
-        };
-        
-        setLoreMap(sampleMap);
-        setLoading(false);
-      }, 800);
+      setLoading(true);
+      const response = await fetch(`http://localhost:5000/api/loremaps/${id}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load campaign');
+      }
+      
+      const data = await response.json();
+      setLoreMap(data);
     } catch (err) {
       console.error('Failed to fetch lore map:', err);
       setError('Failed to load campaign. Please try again later.');
+    } finally {
       setLoading(false);
     }
-  };
+  }, [id]); // id is the only dependency for this function
+
+  // Now use fetchLoreMap in the effect
+  useEffect(() => {
+    fetchLoreMap();
+  }, [fetchLoreMap]); // fetchLoreMap is stable and won't cause unnecessary re-renders
 
   const handleUpdateLoreMap = (updatedMap) => {
     setLoreMap(updatedMap);
-    // In a real app, you would save this to your API
-    console.log('LoreMap updated:', updatedMap);
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+      
+      // Save each event that doesn't have an ID (new events)
+      for (const event of loreMap.events.filter(e => !e.id || e.id > 1000000)) {
+        await fetch(`http://localhost:5000/api/loremaps/${id}/events`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: event.title,
+            description: event.description,
+            location: event.location,
+            position: {
+              x: event.position.x,
+              y: event.position.y
+            },
+            is_party_location: event.isPartyLocation
+          })
+        });
+      }
+      
+      // Update existing events
+      for (const event of loreMap.events.filter(e => e.id && e.id <= 1000000)) {
+        await fetch(`http://localhost:5000/api/events/${event.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: event.title,
+            description: event.description,
+            location: event.location,
+            position: {
+              x: event.position.x,
+              y: event.position.y
+            },
+            is_party_location: event.isPartyLocation
+          })
+        });
+      }
+      
+      // Save each connection that doesn't have an ID (new connections)
+      for (const conn of loreMap.connections.filter(c => !c.id || c.id > 1000000)) {
+        await fetch(`http://localhost:5000/api/loremaps/${id}/connections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            from: conn.from,
+            to: conn.to,
+            description: conn.description || ''
+          })
+        });
+      }
+      
+      // Refresh the map data
+      await fetchLoreMap();
+      
+      alert('Campaign saved successfully!');
+    } catch (err) {
+      console.error('Failed to save changes:', err);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const handleExportMap = () => {
+    try {
+      // Create a data URL for a JSON file
+      const dataStr = JSON.stringify(loreMap, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      // Create a download link and trigger it
+      const exportLink = document.createElement('a');
+      exportLink.setAttribute('href', dataUri);
+      exportLink.setAttribute('download', `${loreMap.title.replace(/\s+/g, '_')}_map.json`);
+      document.body.appendChild(exportLink);
+      exportLink.click();
+      document.body.removeChild(exportLink);
+      
+    } catch (err) {
+      console.error('Failed to export map:', err);
+      alert('Failed to export map. Please try again.');
+    }
   };
 
   if (loading) {
@@ -77,8 +153,25 @@ const LoreMapEditor = ({ user }) => {
       </div>
       
       <div className="editor-toolbox">
-        <button className="editor-button">Save Changes</button>
-        <button className="editor-button secondary">Export Map</button>
+        <button 
+          className="editor-button" 
+          onClick={handleSaveChanges}
+          disabled={saving}
+        >
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
+        <button 
+          className="editor-button secondary" 
+          onClick={handleExportMap}
+        >
+          Export Map
+        </button>
+        <button 
+          className="editor-button secondary" 
+          onClick={() => navigate('/dashboard')}
+        >
+          Back to Dashboard
+        </button>
       </div>
       
       <div className="editor-content">
@@ -86,6 +179,7 @@ const LoreMapEditor = ({ user }) => {
           initialEvents={loreMap.events}
           initialConnections={loreMap.connections}
           onChange={handleUpdateLoreMap}
+          loreMapId={id}
         />
       </div>
     </div>

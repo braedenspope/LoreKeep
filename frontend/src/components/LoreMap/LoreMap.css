@@ -176,3 +176,58 @@
   .modal-actions button:hover {
     opacity: 0.9;
   }
+
+  /* Add to LoreMap.css */
+.connection-help-text {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #3498db;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.event-node.connection-source {
+  border: 2px solid #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+.event-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.event-action-buttons button {
+  flex-grow: 1;
+  min-width: calc(50% - 5px);
+}
+
+.event-action-buttons .delete-button {
+  background-color: #e74c3c;
+}
+
+.event-action-buttons .delete-button:hover {
+  background-color: #c0392b;
+}
+
+.event-details-panel input,
+.event-details-panel textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+  margin-bottom: 10px;
+}
+
+.event-details-panel textarea {
+  height: 100px;
+  resize: vertical;
+}
