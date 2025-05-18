@@ -1,8 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = ({ isAuthenticated, onLogout, user }) => {
+  const navigate = useNavigate();
+
+  const handleNavigation = (path) => {
+    navigate(path);
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-logo">
@@ -14,8 +20,20 @@ const Navbar = ({ isAuthenticated, onLogout, user }) => {
       <div className="navbar-links">
         {isAuthenticated ? (
           <>
-            <Link to="/dashboard">Dashboard</Link>
-            <Link to="/characters">Characters</Link>
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/dashboard')}
+            >
+              Dashboard
+            </button>
+            
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/characters')}
+            >
+              Characters
+            </button>
+            
             <div className="navbar-user">
               <span>Welcome, {user.username}</span>
               <button onClick={onLogout} className="logout-btn">Logout</button>
@@ -23,8 +41,19 @@ const Navbar = ({ isAuthenticated, onLogout, user }) => {
           </>
         ) : (
           <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/login')}
+            >
+              Login
+            </button>
+            
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/register')}
+            >
+              Register
+            </button>
           </>
         )}
       </div>

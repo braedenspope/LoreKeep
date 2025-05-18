@@ -395,6 +395,206 @@ def validate_session():
         "message": "Session is valid"
     })
 
+# Character routes
+@app.route('/api/characters', methods=['GET'])
+def get_characters():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    characters = Character.query.filter_by(user_id=user_id).all()
+    result = [{
+        "id": char.id,
+        "name": char.name,
+        "character_type": char.character_type,
+        "description": char.description,
+        "stats": char.stats,
+        "user_id": char.user_id
+    } for char in characters]
+    
+    return jsonify(result)
+
+@app.route('/api/characters', methods=['POST'])
+def create_character():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.json
+    
+    new_character = Character(
+        name=data.get('name', 'New Character'),
+        character_type=data.get('character_type', 'NPC'),
+        description=data.get('description', ''),
+        stats=data.get('stats', '{}'),
+        user_id=user_id
+    )
+    
+    db.session.add(new_character)
+    db.session.commit()
+    
+    return jsonify({
+        "id": new_character.id,
+        "name": new_character.name,
+        "character_type": new_character.character_type,
+        "description": new_character.description,
+        "stats": new_character.stats,
+        "user_id": new_character.user_id,
+        "message": "Character created successfully!"
+    }), 201
+
+@app.route('/api/characters/<int:id>', methods=['GET'])
+def get_character(id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    character = Character.query.filter_by(id=id, user_id=user_id).first()
+    if not character:
+        return jsonify({"error": "Character not found"}), 404
+    
+    return jsonify({
+        "id": character.id,
+        "name": character.name,
+        "character_type": character.character_type,
+        "description": character.description,
+        "stats": character.stats,
+        "user_id": character.user_id
+    })
+
+@app.route('/api/characters/<int:id>', methods=['PUT'])
+def update_character(id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    character = Character.query.filter_by(id=id, user_id=user_id).first()
+    if not character:
+        return jsonify({"error": "Character not found"}), 404
+    
+    data = request.json
+    
+    character.name = data.get('name', character.name)
+    character.character_type = data.get('character_type', character.character_type)
+    character.description = data.get('description', character.description)
+    character.stats = data.get('stats', character.stats)
+    
+    db.session.commit()
+    
+    return jsonify({
+        "id": character.id,
+        "name": character.name,
+        "character_type": character.character_type,
+        "description": character.description,
+        "stats": character.stats,
+        "user_id": character.user_id,
+        "message": "Character updated successfully!"
+    })
+
+@app.route('/api/characters/<int:id>', methods=['DELETE'])
+def delete_character(id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    character = Character.query.filter_by(id=id, user_id=user_id).first()
+    if not character:
+        return jsonify({"error": "Character not found"}), 404
+    
+    db.session.delete(character)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Character deleted successfully!"
+    })
+
+# Event Character routes
+@app.route('/api/events/<int:event_id>/characters', methods=['GET'])
+def get_event_characters(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Check if event belongs to user
+    event = Event.query.join(LoreMap).filter(Event.id == event_id, LoreMap.user_id == user_id).first()
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+    
+    event_characters = EventCharacter.query.filter_by(event_id=event_id).all()
+    result = [{
+        "id": ec.id,
+        "event_id": ec.event_id,
+        "character_id": ec.character_id,
+        "role": ec.role
+    } for ec in event_characters]
+    
+    return jsonify(result)
+
+@app.route('/api/events/<int:event_id>/characters', methods=['POST'])
+def add_character_to_event(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Check if event belongs to user
+    event = Event.query.join(LoreMap).filter(Event.id == event_id, LoreMap.user_id == user_id).first()
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+    
+    data = request.json
+    character_id = data.get('character_id')
+    
+    # Check if character belongs to user
+    character = Character.query.filter_by(id=character_id, user_id=user_id).first()
+    if not character:
+        return jsonify({"error": "Character not found"}), 404
+    
+    # Check if character is already in event
+    existing = EventCharacter.query.filter_by(event_id=event_id, character_id=character_id).first()
+    if existing:
+        return jsonify({"error": "Character already in event"}), 400
+    
+    # Add character to event
+    event_character = EventCharacter(
+        event_id=event_id,
+        character_id=character_id,
+        role=data.get('role', 'present')
+    )
+    
+    db.session.add(event_character)
+    db.session.commit()
+    
+    return jsonify({
+        "id": event_character.id,
+        "event_id": event_character.event_id,
+        "character_id": event_character.character_id,
+        "role": event_character.role,
+        "message": "Character added to event!"
+    }), 201
+
+@app.route('/api/events/<int:event_id>/characters/<int:character_id>', methods=['DELETE'])
+def remove_character_from_event(event_id, character_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Check if event belongs to user
+    event = Event.query.join(LoreMap).filter(Event.id == event_id, LoreMap.user_id == user_id).first()
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+    
+    # Find and delete the event character relationship
+    event_character = EventCharacter.query.filter_by(event_id=event_id, character_id=character_id).first()
+    if not event_character:
+        return jsonify({"error": "Character not in event"}), 404
+    
+    db.session.delete(event_character)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Character removed from event!"
+    })
+
 # Main application entry point
 if __name__ == '__main__':
     with app.app_context():

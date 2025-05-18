@@ -231,3 +231,350 @@
   height: 100px;
   resize: vertical;
 }
+
+/* Add to LoreMap.css */
+.event-characters {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.event-characters h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+.character-select select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+  margin-bottom: 10px;
+}
+
+.event-character-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 5px;
+}
+
+.character-type-badge {
+  background-color: #e1e4e8;
+  color: #666;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+
+.remove-character-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.remove-character-btn:hover {
+  color: #e74c3c;
+}
+
+/* Parchment-style for lore map canvas */
+.lore-map-canvas {
+  position: relative;
+  flex-grow: 1;
+  background-color: #f4e4ba; /* Base parchment color */
+  background-image: 
+    /* Subtle texture overlay */
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E"),
+    /* Grid lines for the map */
+    linear-gradient(rgba(165, 130, 80, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(165, 130, 80, 0.2) 1px, transparent 1px);
+  background-size: 100px 100px, 20px 20px, 20px 20px;
+  box-shadow: inset 0 0 20px rgba(139, 69, 19, 0.3);
+  border: 1px solid #d5b878;
+  overflow: auto;
+  cursor: move;
+  margin: 10px;
+  border-radius: 8px;
+}
+
+/* Darker edges for parchment effect */
+.lore-map-canvas::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 50px rgba(101, 67, 33, 0.5);
+  pointer-events: none; /* Allow clicking through this layer */
+  border-radius: 8px;
+  z-index: 1;
+}
+
+/* Style event nodes to look like notes on parchment */
+.event-node {
+  position: absolute;
+  width: 150px;
+  background-color: #fffaed;
+  border: 1px solid #a67c52;
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  user-select: none;
+  z-index: 10;
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: 'Bookman Old Style', Georgia, serif;
+}
+
+.event-node:hover {
+  transform: scale(1.02);
+  box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.25);
+}
+
+.event-node.selected {
+  border: 2px solid #8b4513; /* Darker brown for selected events */
+  box-shadow: 0 0 0 2px rgba(139, 69, 19, 0.3);
+}
+
+.event-node.party-location {
+  border-color: #556b2f; /* Dark olive green for party location */
+  background-color: #eaf4e4; /* Slightly greenish background */
+}
+
+.event-node h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #5e2612; /* Deep reddish brown for titles */
+  font-family: 'Bookman Old Style', Georgia, serif;
+}
+
+.event-location {
+  font-size: 12px;
+  color: #8b4513; /* Brown for location text */
+  font-style: italic;
+}
+
+/* Style connections between events */
+svg line {
+  stroke: #8b4513; /* Brown lines for connections */
+  stroke-width: 2;
+}
+
+/* Customize the arrowhead */
+svg polygon {
+  fill: #8b4513; /* Brown arrows */
+}
+
+/* Add to LoreMap.css */
+.event-details-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background-color: #fffaed;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  z-index: 100;
+  font-family: 'Bookman Old Style', Georgia, serif;
+  border: 3px double #a67c52;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.event-details-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.event-details-panel h3 {
+  margin-top: 0;
+  color: #7b2d26; /* Dark red */
+  border-bottom: 1px solid #d5b78a;
+  padding-bottom: 10px;
+  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  text-align: center;
+}
+
+.event-details-panel input[type="text"],
+.event-details-panel textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d5b78a; /* Light brown border */
+  border-radius: 4px;
+  background-color: #fffbf0; /* Very light cream */
+  color: #3e2723; /* Dark brown text */
+  font-family: 'Bookman Old Style', Georgia, serif;
+  margin-bottom: 10px;
+}
+
+.event-details-panel label {
+  color: #5e2612; /* Deep reddish brown */
+  font-weight: bold;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.party-badge {
+  display: inline-block;
+  background-color: #556b2f; /* Dark olive green */
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.event-action-buttons button {
+  background-color: #7b2d26; /* Dark red */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 8px;
+  margin-top: 15px;
+  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: background-color 0.2s;
+}
+
+.event-action-buttons button:hover {
+  background-color: #9a3c34; /* Lighter red */
+}
+
+.event-action-buttons .delete-button {
+  background-color: #3e2723; /* Dark brown */
+}
+
+.event-action-buttons .delete-button:hover {
+  background-color: #543c36; /* Lighter brown */
+}
+
+/* Style the event creation modal more like a scroll */
+.create-event-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fffaed;
+  width: 400px;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  font-family: 'Bookman Old Style', Georgia, serif;
+  border: 8px double #a67c52;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.create-event-modal h3 {
+  margin-top: 0;
+  color: #7b2d26; /* Dark red */
+  border-bottom: 1px solid #d5b78a;
+  padding-bottom: 10px;
+  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  text-align: center;
+}
+
+.create-event-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Character selection styling in event panel */
+.event-characters {
+  margin-top: 15px;
+  border-top: 1px solid #d5b78a;
+  padding-top: 15px;
+}
+
+.event-characters h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #5e2612; /* Deep reddish brown */
+  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  text-align: center;
+}
+
+.character-select select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d5b78a; /* Light brown border */
+  border-radius: 4px;
+  background-color: #fffbf0; /* Very light cream */
+  color: #3e2723; /* Dark brown text */
+  font-family: 'Bookman Old Style', Georgia, serif;
+  margin-bottom: 10px;
+}
+
+.event-character-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f5e9;
+  border: 1px solid #d5b78a;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  font-family: 'Bookman Old Style', Georgia, serif;
+}
+
+.character-type-badge {
+  background-color: #e1e4e8;
+  color: #5e2612;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.remove-character-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #7b2d26;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.remove-character-btn:hover {
+  color: #9a3c34;
+}

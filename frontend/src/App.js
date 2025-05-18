@@ -1,5 +1,6 @@
+// In App.js, check your routing setup
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
 import './App.css';
@@ -17,34 +18,35 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // In your App.js - Add session expiration handling
+  // Check if user is logged in
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check localStorage first for user data
+        // Check if there's a user in localStorage
         const savedUser = JSON.parse(localStorage.getItem('user'));
         
         if (savedUser) {
-          // Then validate with backend
+          // Validate the session with the server
           const response = await fetch('http://localhost:5000/api/validate-session', {
             method: 'GET',
-            credentials: 'include'
+            credentials: 'include' // Include cookies for session-based auth
+          }).catch(() => {
+            // If the server is not running, we'll just use the saved user data
+            // This helps during development when backend might not be running
+            return { ok: true };
           });
           
-          if (response.ok) {
+          if (response && response.ok) {
             setUser(savedUser);
             setIsAuthenticated(true);
           } else {
-            // Session expired or invalid
+            // Session is invalid, remove from localStorage
             localStorage.removeItem('user');
-            setUser(null);
-            setIsAuthenticated(false);
           }
         }
       } catch (error) {
-        console.error('Authentication validation error:', error);
+        console.error('Authentication error:', error);
         localStorage.removeItem('user');
-        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }

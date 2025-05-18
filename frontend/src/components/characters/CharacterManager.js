@@ -1,69 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './CharacterManager.css';
-
-// Sample character data
-const sampleCharacters = [
-  {
-    id: 1,
-    name: 'Lord Neverember',
-    type: 'NPC',
-    description: 'The former Open Lord of Waterdeep, now rules Neverwinter.',
-    stats: {
-      strength: 14,
-      dexterity: 12,
-      constitution: 16,
-      intelligence: 16,
-      wisdom: 14,
-      charisma: 18,
-      armorClass: 16,
-      hitPoints: 112,
-      actions: [
-        { name: 'Longsword', description: '+7 to hit, 1d8+3 slashing damage' },
-        { name: 'Crossbow', description: '+5 to hit, 1d10+1 piercing damage' },
-      ]
-    }
-  },
-  {
-    id: 2,
-    name: 'Grumsh the Destroyer',
-    type: 'Monster',
-    description: 'A fearsome half-orc barbarian who leads a band of marauders.',
-    stats: {
-      strength: 18,
-      dexterity: 14,
-      constitution: 16,
-      intelligence: 8,
-      wisdom: 10,
-      charisma: 12,
-      armorClass: 15,
-      hitPoints: 65,
-      actions: [
-        { name: 'Greataxe', description: '+7 to hit, 1d12+4 slashing damage' },
-        { name: 'Javelin', description: '+7 to hit, 1d6+4 piercing damage' },
-      ]
-    }
-  },
-  {
-    id: 3,
-    name: 'Elaria Moonwhisper',
-    type: 'PC',
-    description: 'Elven wizard who seeks ancient magic artifacts.',
-    stats: {
-      strength: 8,
-      dexterity: 14,
-      constitution: 12,
-      intelligence: 18,
-      wisdom: 14,
-      charisma: 12,
-      armorClass: 12,
-      hitPoints: 32,
-      actions: [
-        { name: 'Firebolt', description: '+7 to hit, 1d10 fire damage' },
-        { name: 'Magic Missile', description: 'Auto-hit, 3×1d4+1 force damage' },
-      ]
-    }
-  }
-];
 
 const CharacterManager = ({ user }) => {
   const [characters, setCharacters] = useState([]);
@@ -73,18 +9,253 @@ const CharacterManager = ({ user }) => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    character_type: 'NPC',
+    description: '',
+    stats: {
+      strength: 10,
+      dexterity: 10,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 10,
+      charisma: 10,
+      armorClass: 10,
+      hitPoints: 10,
+      actions: []
+    }
+  });
+  
+  // Fetch characters from the backend
+  const fetchCharacters = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/characters', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load characters');
+      }
+      
+      const data = await response.json();
+      setCharacters(data);
+    } catch (err) {
+      console.error('Failed to fetch characters:', err);
+      setError('Failed to load characters. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setCharacters(sampleCharacters);
-      setLoading(false);
-    }, 800);
-  }, []);
+    fetchCharacters();
+  }, [fetchCharacters]);
 
+  // Create a new character
+  const handleCreate = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/characters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: formData.name,
+          character_type: formData.character_type,
+          description: formData.description,
+          stats: JSON.stringify(formData.stats)
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create character');
+      }
+      
+      const data = await response.json();
+      setCharacters([...characters, data]);
+      setIsCreating(false);
+      resetForm();
+      
+    } catch (err) {
+      console.error('Failed to create character:', err);
+      setError('Failed to create character. Please try again.');
+    }
+  };
+  
+  // Update existing character
+  const handleUpdate = async () => {
+    if (!selectedCharacter) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/characters/${selectedCharacter.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: formData.name,
+          character_type: formData.character_type,
+          description: formData.description,
+          stats: JSON.stringify(formData.stats)
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update character');
+      }
+      
+      const data = await response.json();
+      setCharacters(characters.map(char => 
+        char.id === selectedCharacter.id ? data : char
+      ));
+      setIsEditing(false);
+      setSelectedCharacter(data);
+      
+    } catch (err) {
+      console.error('Failed to update character:', err);
+      setError('Failed to update character. Please try again.');
+    }
+  };
+  
+  // Delete character
+  const handleDelete = async () => {
+    if (!selectedCharacter) return;
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedCharacter.name}?`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/characters/${selectedCharacter.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete character');
+      }
+      
+      setCharacters(characters.filter(char => char.id !== selectedCharacter.id));
+      setSelectedCharacter(null);
+      
+    } catch (err) {
+      console.error('Failed to delete character:', err);
+      setError('Failed to delete character. Please try again.');
+    }
+  };
+  
+  // Reset form data
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      character_type: 'NPC',
+      description: '',
+      stats: {
+        strength: 10,
+        dexterity: 10,
+        constitution: 10,
+        intelligence: 10,
+        wisdom: 10,
+        charisma: 10,
+        armorClass: 10,
+        hitPoints: 10,
+        actions: []
+      }
+    });
+  };
+  
+  // Handle form input changes
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+  
+  // Handle stat changes
+  const handleStatChange = (statName, value) => {
+    setFormData({
+      ...formData,
+      stats: {
+        ...formData.stats,
+        [statName]: parseInt(value, 10) || 0
+      }
+    });
+  };
+  
+  // Add a new action to character
+  const handleAddAction = () => {
+    setFormData({
+      ...formData,
+      stats: {
+        ...formData.stats,
+        actions: [
+          ...formData.stats.actions,
+          { name: '', description: '' }
+        ]
+      }
+    });
+  };
+  
+  // Update action data
+  const handleActionChange = (index, field, value) => {
+    const updatedActions = [...formData.stats.actions];
+    updatedActions[index] = {
+      ...updatedActions[index],
+      [field]: value
+    };
+    
+    setFormData({
+      ...formData,
+      stats: {
+        ...formData.stats,
+        actions: updatedActions
+      }
+    });
+  };
+  
+  // Remove an action
+  const handleRemoveAction = (index) => {
+    const updatedActions = formData.stats.actions.filter((_, i) => i !== index);
+    
+    setFormData({
+      ...formData,
+      stats: {
+        ...formData.stats,
+        actions: updatedActions
+      }
+    });
+  };
+
+  // Start editing character
+  const handleEditClick = () => {
+    if (!selectedCharacter) return;
+    
+    // Parse the stats if it's a string
+    const stats = typeof selectedCharacter.stats === 'string' 
+      ? JSON.parse(selectedCharacter.stats) 
+      : selectedCharacter.stats;
+    
+    setFormData({
+      name: selectedCharacter.name,
+      character_type: selectedCharacter.character_type,
+      description: selectedCharacter.description,
+      stats: stats
+    });
+    
+    setIsEditing(true);
+  };
+
+  // Filter characters based on search term and type filter
   const filteredCharacters = characters.filter(char => {
     // Filter by character type
-    if (filter !== 'all' && char.type !== filter) {
+    if (filter !== 'all' && char.character_type !== filter) {
       return false;
     }
     
@@ -96,17 +267,199 @@ const CharacterManager = ({ user }) => {
     return true;
   });
 
-  const handleCharacterSelect = (character) => {
-    setSelectedCharacter(character);
-    setIsEditing(false);
+  // Render the character creation/editing form
+  const renderForm = () => {
+    return (
+      <div className="character-form">
+        <h2>{isEditing ? 'Edit Character' : 'Create New Character'}</h2>
+        
+        <div className="form-group">
+          <label htmlFor="name">Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleFormChange}
+            required
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="character_type">Character Type</label>
+          <select
+            id="character_type"
+            name="character_type"
+            value={formData.character_type}
+            onChange={handleFormChange}
+          >
+            <option value="PC">PC</option>
+            <option value="NPC">NPC</option>
+            <option value="Monster">Monster</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="description">Description</label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={handleFormChange}
+            rows="4"
+          />
+        </div>
+        
+        <h3>Stats</h3>
+        <div className="stats-grid">
+          <div className="stat-item">
+            <label htmlFor="strength">STR</label>
+            <input
+              type="number"
+              id="strength"
+              value={formData.stats.strength}
+              onChange={(e) => handleStatChange('strength', e.target.value)}
+              min="1"
+            />
+          </div>
+          
+          <div className="stat-item">
+            <label htmlFor="dexterity">DEX</label>
+            <input
+              type="number"
+              id="dexterity"
+              value={formData.stats.dexterity}
+              onChange={(e) => handleStatChange('dexterity', e.target.value)}
+              min="1"
+            />
+          </div>
+          
+          <div className="stat-item">
+            <label htmlFor="constitution">CON</label>
+            <input
+              type="number"
+              id="constitution"
+              value={formData.stats.constitution}
+              onChange={(e) => handleStatChange('constitution', e.target.value)}
+              min="1"
+            />
+          </div>
+          
+          <div className="stat-item">
+            <label htmlFor="intelligence">INT</label>
+            <input
+              type="number"
+              id="intelligence"
+              value={formData.stats.intelligence}
+              onChange={(e) => handleStatChange('intelligence', e.target.value)}
+              min="1"
+            />
+          </div>
+          
+          <div className="stat-item">
+            <label htmlFor="wisdom">WIS</label>
+            <input
+              type="number"
+              id="wisdom"
+              value={formData.stats.wisdom}
+              onChange={(e) => handleStatChange('wisdom', e.target.value)}
+              min="1"
+            />
+          </div>
+          
+          <div className="stat-item">
+            <label htmlFor="charisma">CHA</label>
+            <input
+              type="number"
+              id="charisma"
+              value={formData.stats.charisma}
+              onChange={(e) => handleStatChange('charisma', e.target.value)}
+              min="1"
+            />
+          </div>
+        </div>
+        
+        <div className="combat-stats">
+          <div className="combat-stat">
+            <label htmlFor="armorClass">AC</label>
+            <input
+              type="number"
+              id="armorClass"
+              value={formData.stats.armorClass}
+              onChange={(e) => handleStatChange('armorClass', e.target.value)}
+              min="1"
+            />
+          </div>
+          
+          <div className="combat-stat">
+            <label htmlFor="hitPoints">HP</label>
+            <input
+              type="number"
+              id="hitPoints"
+              value={formData.stats.hitPoints}
+              onChange={(e) => handleStatChange('hitPoints', e.target.value)}
+              min="1"
+            />
+          </div>
+        </div>
+        
+        <h3>Actions</h3>
+        <button type="button" className="add-action-btn" onClick={handleAddAction}>
+          Add Action
+        </button>
+        
+        {formData.stats.actions.map((action, index) => (
+          <div key={index} className="action-form-item">
+            <div className="action-header">
+              <h4>Action {index + 1}</h4>
+              <button 
+                type="button" 
+                className="remove-action-btn"
+                onClick={() => handleRemoveAction(index)}
+              >
+                Remove
+              </button>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor={`action-name-${index}`}>Name</label>
+              <input
+                type="text"
+                id={`action-name-${index}`}
+                value={action.name}
+                onChange={(e) => handleActionChange(index, 'name', e.target.value)}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor={`action-desc-${index}`}>Description</label>
+              <input
+                type="text"
+                id={`action-desc-${index}`}
+                value={action.description}
+                onChange={(e) => handleActionChange(index, 'description', e.target.value)}
+              />
+            </div>
+          </div>
+        ))}
+        
+        <div className="form-actions">
+          <button type="button" onClick={isEditing ? handleUpdate : handleCreate}>
+            {isEditing ? 'Update Character' : 'Create Character'}
+          </button>
+          <button type="button" onClick={() => {
+            setIsCreating(false);
+            setIsEditing(false);
+            resetForm();
+          }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
   };
 
-  const handleCreateClick = () => {
-    setIsCreating(true);
-    setSelectedCharacter(null);
-    setIsEditing(false);
-  };
-
+  // Main component render
   if (loading) {
     return <div className="loading">Loading characters...</div>;
   }
@@ -116,7 +469,15 @@ const CharacterManager = ({ user }) => {
       <div className="character-sidebar">
         <div className="sidebar-header">
           <h2>Characters</h2>
-          <button className="create-btn" onClick={handleCreateClick}>
+          <button 
+            className="create-btn" 
+            onClick={() => {
+              setIsCreating(true);
+              setSelectedCharacter(null);
+              setIsEditing(false);
+              resetForm();
+            }}
+          >
             Create New
           </button>
         </div>
@@ -169,10 +530,14 @@ const CharacterManager = ({ user }) => {
               <div
                 key={character.id}
                 className={`character-item ${selectedCharacter?.id === character.id ? 'selected' : ''}`}
-                onClick={() => handleCharacterSelect(character)}
+                onClick={() => {
+                  setSelectedCharacter(character);
+                  setIsCreating(false);
+                  setIsEditing(false);
+                }}
               >
                 <div className="character-name">{character.name}</div>
-                <div className="character-type">{character.type}</div>
+                <div className="character-type">{character.character_type}</div>
               </div>
             ))
           )}
@@ -180,15 +545,15 @@ const CharacterManager = ({ user }) => {
       </div>
       
       <div className="character-detail-panel">
-        {selectedCharacter ? (
+        {selectedCharacter && !isEditing && !isCreating ? (
           <div className="character-details">
             <div className="detail-header">
               <h2>{selectedCharacter.name}</h2>
-              <span className="character-type-tag">{selectedCharacter.type}</span>
+              <span className="character-type-tag">{selectedCharacter.character_type}</span>
               
               <div className="detail-actions">
-                <button onClick={() => setIsEditing(true)}>Edit</button>
-                <button className="delete-btn">Delete</button>
+                <button onClick={handleEditClick}>Edit</button>
+                <button className="delete-btn" onClick={handleDelete}>Delete</button>
               </div>
             </div>
             
@@ -199,67 +564,13 @@ const CharacterManager = ({ user }) => {
             
             <div className="character-stats">
               <h3>Stats</h3>
-              <div className="stats-grid">
-                <div className="stat-item">
-                  <span className="stat-label">STR</span>
-                  <span className="stat-value">{selectedCharacter.stats.strength}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">DEX</span>
-                  <span className="stat-value">{selectedCharacter.stats.dexterity}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">CON</span>
-                  <span className="stat-value">{selectedCharacter.stats.constitution}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">INT</span>
-                  <span className="stat-value">{selectedCharacter.stats.intelligence}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">WIS</span>
-                  <span className="stat-value">{selectedCharacter.stats.wisdom}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">CHA</span>
-                  <span className="stat-value">{selectedCharacter.stats.charisma}</span>
-                </div>
-              </div>
-              
-              <div className="combat-stats">
-                <div className="combat-stat">
-                  <span className="stat-label">AC</span>
-                  <span className="stat-value">{selectedCharacter.stats.armorClass}</span>
-                </div>
-                <div className="combat-stat">
-                  <span className="stat-label">HP</span>
-                  <span className="stat-value">{selectedCharacter.stats.hitPoints}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="character-actions">
-              <h3>Actions</h3>
-              <div className="actions-list">
-                {selectedCharacter.stats.actions.map((action, index) => (
-                  <div key={index} className="action-item">
-                    <div className="action-name">{action.name}</div>
-                    <div className="action-description">{action.description}</div>
-                    <button className="roll-btn">Roll</button>
-                  </div>
-                ))}
-              </div>
+              {/* Render character stats appropriately */}
+              {/* You'll need to parse the stats JSON if it's stored as a string */}
+              {renderCharacterStats()}
             </div>
           </div>
-        ) : isCreating ? (
-          <div className="character-form">
-            <h2>Create New Character</h2>
-            <p>Form will go here...</p>
-            <div className="form-actions">
-              <button>Save Character</button>
-              <button onClick={() => setIsCreating(false)}>Cancel</button>
-            </div>
-          </div>
+        ) : isCreating || isEditing ? (
+          renderForm()
         ) : (
           <div className="no-selection">
             <p>Select a character from the list or create a new one</p>
@@ -268,6 +579,73 @@ const CharacterManager = ({ user }) => {
       </div>
     </div>
   );
+  
+  // Helper function to render character stats
+  function renderCharacterStats() {
+    if (!selectedCharacter) return null;
+    
+    // Parse stats if needed
+    const stats = typeof selectedCharacter.stats === 'string' 
+      ? JSON.parse(selectedCharacter.stats) 
+      : selectedCharacter.stats;
+    
+    return (
+      <>
+        <div className="stats-grid">
+          <div className="stat-item">
+            <span className="stat-label">STR</span>
+            <span className="stat-value">{stats.strength}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">DEX</span>
+            <span className="stat-value">{stats.dexterity}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">CON</span>
+            <span className="stat-value">{stats.constitution}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">INT</span>
+            <span className="stat-value">{stats.intelligence}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">WIS</span>
+            <span className="stat-value">{stats.wisdom}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">CHA</span>
+            <span className="stat-value">{stats.charisma}</span>
+          </div>
+        </div>
+        
+        <div className="combat-stats">
+          <div className="combat-stat">
+            <span className="stat-label">AC</span>
+            <span className="stat-value">{stats.armorClass}</span>
+          </div>
+          <div className="combat-stat">
+            <span className="stat-label">HP</span>
+            <span className="stat-value">{stats.hitPoints}</span>
+          </div>
+        </div>
+        
+        {stats.actions && stats.actions.length > 0 && (
+          <div className="character-actions">
+            <h3>Actions</h3>
+            <div className="actions-list">
+              {stats.actions.map((action, index) => (
+                <div key={index} className="action-item">
+                  <div className="action-name">{action.name}</div>
+                  <div className="action-description">{action.description}</div>
+                  <button className="roll-btn">Roll</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 };
 
 export default CharacterManager;

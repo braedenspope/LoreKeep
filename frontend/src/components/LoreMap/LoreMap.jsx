@@ -43,6 +43,99 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }
   }, [initialEvents, initialConnections]);
 
+  // Add these to your state variables
+  const [characters, setCharacters] = useState([]);
+  const [eventCharacters, setEventCharacters] = useState([]);
+
+  // Add this useEffect to fetch characters
+  useEffect(() => {
+    const fetchCharacters = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/characters', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCharacters(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch characters:', err);
+      }
+    };
+    
+    fetchCharacters();
+  }, []);
+
+  // Add this when an event is selected
+  useEffect(() => {
+    if (selectedEvent && selectedEvent.id) {
+      const fetchEventCharacters = async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/events/${selectedEvent.id}/characters`, {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setEventCharacters(data.map(ec => ec.character_id));
+          }
+        } catch (err) {
+          console.error('Failed to fetch event characters:', err);
+        }
+      };
+      
+      fetchEventCharacters();
+    } else {
+      setEventCharacters([]);
+    }
+  }, [selectedEvent]);
+
+  // Add character to event
+  const handleAddCharacterToEvent = async (characterId) => {
+    if (!selectedEvent || !characterId) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/events/${selectedEvent.id}/characters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          character_id: characterId,
+          role: 'present'
+        })
+      });
+      
+      if (response.ok) {
+        setEventCharacters([...eventCharacters, characterId]);
+      }
+    } catch (err) {
+      console.error('Failed to add character to event:', err);
+    }
+  };
+
+  // Remove character from event
+  const handleRemoveCharacterFromEvent = async (characterId) => {
+    if (!selectedEvent) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/events/${selectedEvent.id}/characters/${characterId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        setEventCharacters(eventCharacters.filter(id => id !== characterId));
+      }
+    } catch (err) {
+      console.error('Failed to remove character from event:', err);
+    }
+  };
+
   // Canvas right-click for new event
   const handleCanvasContextMenu = (e) => {
     e.preventDefault();
@@ -316,6 +409,43 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               />
               Party is here
             </label>
+          </div>
+
+          <div className="event-characters">
+      `      <h4>Characters Present</h4>
+            <div className="character-select">
+              <select 
+                value="" 
+                onChange={(e) => {
+                  if (e.target.value) handleAddCharacterToEvent(parseInt(e.target.value, 10));
+                }}
+              >
+                <option value="">Add a character...</option>
+                {characters.map(char => (
+                  <option key={char.id} value={char.id}>{char.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="character-list">
+              {eventCharacters.map(charId => {
+                const character = characters.find(c => c.id === charId);
+                if (!character) return null;
+                
+                return (
+                  <div key={charId} className="event-character-item">
+                    <span>{character.name}</span>
+                    <span className="character-type-badge">{character.character_type}</span>
+                    <button 
+                      className="remove-character-btn"
+                      onClick={() => handleRemoveCharacterFromEvent(charId)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           
           <div className="event-action-buttons">
