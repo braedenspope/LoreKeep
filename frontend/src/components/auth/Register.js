@@ -33,8 +33,10 @@ const Register = () => {
     }
     
     try {
-      // Connect to your Flask backend
-      const response = await fetch(`${config.apiUrl}/api/register`, {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      console.log('Sending request to:', `${API_URL}/api/register`); // Debug log
+      
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,7 +48,22 @@ const Register = () => {
         })
       });
       
-      const data = await response.json();
+      console.log('Response status:', response.status); // Debug log
+      console.log('Response headers:', response.headers); // Debug log
+      
+      // Log the raw response text before parsing as JSON
+      const responseText = await response.text();
+      console.log('Raw response:', responseText); // This will show us what we're actually getting
+      
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Response was:', responseText);
+        throw new Error('Server returned invalid response');
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Registration failed');
