@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request, session, redirect, url_for
+from flask import Flask, jsonify, request, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 import json
@@ -21,6 +22,21 @@ CORS(app,
 # Configure database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lorekeep.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Configure file uploads
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create uploads directory if it doesn't exist
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 db = SQLAlchemy(app)
 
 # Define models
@@ -156,6 +172,23 @@ def logout():
     session.pop('user_id', None)
     return jsonify({"message": "Logged out successfully"})
 
+# Add a session validation endpoint
+@app.route('/api/validate-session', methods=['GET'])
+def validate_session():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "message": "Session is valid"
+    })
+
 # LoreMap routes
 @app.route('/api/loremaps', methods=['GET'])
 def get_lore_maps():
@@ -197,8 +230,6 @@ def create_lore_map():
         "description": new_map.description,
         "message": "Lore map created successfully!"
     }), 201
-
-# Add this endpoint to your backend/app.py file, after the other LoreMap routes
 
 @app.route('/api/loremaps/<int:id>', methods=['DELETE'])
 def delete_lore_map(id):
@@ -245,7 +276,9 @@ def get_lore_map(id):
             "x": event.position_x,
             "y": event.position_y
         },
-        "is_party_location": event.is_party_location
+        "is_party_location": event.is_party_location,
+        "battle_map_url": event.image_url,  # Include battle map URL
+        "conditions": json.loads(event.conditions) if event.conditions else []
     } for event in events]
     
     # Get all connections between events
@@ -347,6 +380,13 @@ def update_event(event_id):
         event.conditions = json.dumps(data['conditions'])
     if 'is_party_location' in data:
         event.is_party_location = data['is_party_location']
+    # Don't override battle_map_url unless explicitly provided
+    # This prevents the LoreMapEditor save from clearing the image
+    if 'battle_map_url' in data and data['battle_map_url'] is not None:
+        event.image_url = data['battle_map_url']
+    
+    # Update the lore map's updated_at timestamp
+    event.lore_map.updated_at = datetime.utcnow()
     
     db.session.commit()
     
@@ -360,8 +400,87 @@ def update_event(event_id):
             "y": event.position_y
         },
         "is_party_location": event.is_party_location,
+        "battle_map_url": event.image_url,
+        "conditions": json.loads(event.conditions) if event.conditions else [],
         "message": "Event updated successfully!"
     })
+
+# Battle Map routes
+@app.route('/api/events/<int:event_id>/battle-map', methods=['POST'])
+def upload_battle_map(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Check if event belongs to user
+    event = Event.query.join(LoreMap).filter(
+        Event.id == event_id,
+        LoreMap.user_id == user_id
+    ).first()
+    
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+    
+    if 'battle_map' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files['battle_map']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    if file and allowed_file(file.filename):
+        # Create a unique filename
+        filename = secure_filename(file.filename)
+        timestamp = str(int(datetime.utcnow().timestamp()))
+        filename = f"{timestamp}_{filename}"
+        
+        # Save the file
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Update the event with the image URL
+        event.image_url = f"/api/uploads/{filename}"
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Battle map uploaded successfully",
+            "battle_map_url": event.image_url
+        })
+    
+    return jsonify({"error": "Invalid file type"}), 400
+
+@app.route('/api/events/<int:event_id>/battle-map', methods=['DELETE'])
+def delete_battle_map(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Check if event belongs to user
+    event = Event.query.join(LoreMap).filter(
+        Event.id == event_id,
+        LoreMap.user_id == user_id
+    ).first()
+    
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+    
+    # Delete the file if it exists
+    if event.image_url:
+        filename = event.image_url.split('/')[-1]
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    
+    # Remove the image URL from the event
+    event.image_url = None
+    db.session.commit()
+    
+    return jsonify({"message": "Battle map deleted successfully"})
+
+@app.route('/api/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/loremaps/<int:lore_map_id>/connections', methods=['POST'])
 def create_connection(lore_map_id):
@@ -403,23 +522,6 @@ def create_connection(lore_map_id):
         "description": new_connection.description,
         "message": "Connection created successfully!"
     }), 201
-
-# Add a session validation endpoint
-@app.route('/api/validate-session', methods=['GET'])
-def validate_session():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Not authenticated"}), 401
-    
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    return jsonify({
-        "id": user.id,
-        "username": user.username,
-        "message": "Session is valid"
-    })
 
 # Character routes
 @app.route('/api/characters', methods=['GET'])
