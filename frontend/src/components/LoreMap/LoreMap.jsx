@@ -1,6 +1,7 @@
-// LoreMap.jsx - Add more functionality and data handling
+// LoreMap.jsx - Complete version with conditional logic
 import React, { useState, useEffect, useRef } from 'react';
 import './LoreMap.css';
+import EventConditions from './EventConditions';
 
 const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => {
   const [events, setEvents] = useState(initialEvents || []);
@@ -19,6 +20,9 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
+  const [characters, setCharacters] = useState([]);
+  const [eventCharacters, setEventCharacters] = useState([]);
+  const [eventStates, setEventStates] = useState({}); // Track completed events, character states, etc.
   
   const canvasRef = useRef(null);
 
@@ -43,11 +47,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }
   }, [initialEvents, initialConnections]);
 
-  // Add these to your state variables
-  const [characters, setCharacters] = useState([]);
-  const [eventCharacters, setEventCharacters] = useState([]);
-
-  // Add this useEffect to fetch characters
+  // Fetch characters
   useEffect(() => {
     const fetchCharacters = async () => {
       try {
@@ -68,7 +68,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     fetchCharacters();
   }, []);
 
-  // Add this when an event is selected
+  // Fetch event characters when an event is selected
   useEffect(() => {
     if (selectedEvent && selectedEvent.id) {
       const fetchEventCharacters = async () => {
@@ -92,6 +92,70 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       setEventCharacters([]);
     }
   }, [selectedEvent]);
+
+  // Check if event conditions are met
+  const checkEventConditions = (event) => {
+    if (!event.conditions || event.conditions.length === 0) {
+      return true; // No conditions = always accessible
+    }
+    
+    return event.conditions.every(condition => {
+      switch (condition.type) {
+        case 'event_completed':
+          const isCompleted = eventStates[`event_${condition.target}_completed`] || false;
+          return condition.required ? isCompleted : !isCompleted;
+          
+        case 'character_freed':
+          const isFreed = eventStates[`character_${condition.target}_freed`] || false;
+          return condition.required ? isFreed : !isFreed;
+          
+        case 'character_alive':
+          const isAlive = eventStates[`character_${condition.target}_alive`] !== false; // Default to alive
+          return condition.required ? isAlive : !isAlive;
+          
+        case 'custom':
+          // For custom conditions, you might want to implement a simple true/false toggle
+          const customState = eventStates[`custom_${condition.id}`] || false;
+          return condition.required ? customState : !customState;
+          
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Toggle event completion state
+  const toggleEventCompleted = (eventId) => {
+    const key = `event_${eventId}_completed`;
+    setEventStates(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Toggle character state
+  const toggleCharacterState = (characterId, stateType) => {
+    const key = `character_${characterId}_${stateType}`;
+    setEventStates(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Handle conditions change for selected event
+  const handleConditionsChange = (newConditions) => {
+    if (!selectedEvent) return;
+    
+    const updatedEvent = {
+      ...selectedEvent,
+      conditions: newConditions
+    };
+    
+    setSelectedEvent(updatedEvent);
+    setEvents(events.map(evt => 
+      evt.id === selectedEvent.id ? updatedEvent : evt
+    ));
+  };
 
   // Add character to event
   const handleAddCharacterToEvent = async (characterId) => {
@@ -248,6 +312,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       id: Date.now(), // Temporary ID, will be replaced when saved to backend
       ...newEventData,
       position: newEventPosition,
+      conditions: [] // Initialize with empty conditions
     };
     
     setEvents([...events, newEvent]);
@@ -353,21 +418,43 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           )}
         </svg>
         
-        {events.map(event => (
-          <div
-            key={event.id}
-            className={`event-node ${event.isPartyLocation ? 'party-location' : ''} ${selectedEvent?.id === event.id ? 'selected' : ''} ${connectionStart?.id === event.id ? 'connection-source' : ''}`}
-            style={{
-              left: `${event.position.x}px`,
-              top: `${event.position.y}px`,
-            }}
-            onClick={(e) => handleEventClick(event, e)}
-            onMouseDown={(e) => handleEventDragStart(e, event)}
-          >
-            <h3>{event.title}</h3>
-            <div className="event-location">{event.location}</div>
-          </div>
-        ))}
+        {events.map(event => {
+          const isAccessible = checkEventConditions(event);
+          const isCompleted = eventStates[`event_${event.id}_completed`] || false;
+          
+          return (
+            <div
+              key={event.id}
+              className={`event-node 
+                ${event.isPartyLocation ? 'party-location' : ''} 
+                ${selectedEvent?.id === event.id ? 'selected' : ''} 
+                ${connectionStart?.id === event.id ? 'connection-source' : ''}
+                ${!isAccessible ? 'conditional-locked' : ''}
+                ${isCompleted ? 'completed' : ''}
+              `}
+              style={{
+                left: `${event.position.x}px`,
+                top: `${event.position.y}px`,
+              }}
+              onClick={(e) => handleEventClick(event, e)}
+              onMouseDown={(e) => handleEventDragStart(e, event)}
+            >
+              <h3>{event.title}</h3>
+              <div className="event-location">{event.location}</div>
+              
+              {/* Show condition indicators */}
+              {!isAccessible && (
+                <div className="condition-indicator locked">🔒</div>
+              )}
+              {isCompleted && (
+                <div className="condition-indicator completed">✓</div>
+              )}
+              {event.conditions && event.conditions.length > 0 && (
+                <div className="condition-indicator has-conditions">⚙️</div>
+              )}
+            </div>
+          );
+        })}
         
         {isCreatingConnection && (
           <div className="connection-help-text">
@@ -411,8 +498,19 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             </label>
           </div>
 
+          <div className="form-group">
+            <label>
+              <input 
+                type="checkbox" 
+                checked={eventStates[`event_${selectedEvent.id}_completed`] || false}
+                onChange={() => toggleEventCompleted(selectedEvent.id)}
+              />
+              Mark as completed
+            </label>
+          </div>
+
           <div className="event-characters">
-      `      <h4>Characters Present</h4>
+            <h4>Characters Present</h4>
             <div className="character-select">
               <select 
                 value="" 
@@ -445,6 +543,44 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Event Conditions Component */}
+          <EventConditions
+            conditions={selectedEvent.conditions || []}
+            onConditionsChange={handleConditionsChange}
+            availableEvents={events.filter(e => e.id !== selectedEvent.id)} // Don't include self
+            availableCharacters={characters}
+          />
+
+          {/* Character state management section */}
+          <div className="character-states">
+            <h4>Character States</h4>
+            <div className="character-state-toggles">
+              {characters.map(character => (
+                <div key={character.id} className="character-state-item">
+                  <span className="character-name">{character.name}</span>
+                  <div className="state-toggles">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={eventStates[`character_${character.id}_freed`] || false}
+                        onChange={() => toggleCharacterState(character.id, 'freed')}
+                      />
+                      Freed
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={eventStates[`character_${character.id}_alive`] !== false}
+                        onChange={() => toggleCharacterState(character.id, 'alive')}
+                      />
+                      Alive
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           

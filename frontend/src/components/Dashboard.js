@@ -77,13 +77,33 @@ const Dashboard = ({ user }) => {
     setNewMapData({ ...newMapData, [name]: value });
   };
 
-  const handleDeleteMap = async (id) => {
+  // Replace the handleDeleteMap function in Dashboard.js with this:
+
+  const handleDeleteMap = async (id, title) => {
+    // Confirm deletion
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      return;
+    }
+    
     try {
-      // In a real application, you would call your API
-      // For now, we'll just update the state
+      const response = await fetch(`http://localhost:5000/api/loremaps/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete campaign');
+      }
+      
+      // Remove from local state
       setLoreMaps(loreMaps.filter(map => map.id !== id));
+      
+      // Optional: Show success message
+      console.log('Campaign deleted successfully');
+      
     } catch (err) {
-      console.error('Failed to delete lore map:', err);
+      console.error('Failed to delete campaign:', err);
       setError('Failed to delete campaign. Please try again.');
     }
   };
@@ -126,7 +146,7 @@ const Dashboard = ({ user }) => {
                 </Link>
                 <button 
                   className="delete-map-btn"
-                  onClick={() => handleDeleteMap(map.id)}
+                  onClick={() => handleDeleteMap(map.id, map.title)}
                 >
                   Delete
                 </button>

@@ -198,6 +198,32 @@ def create_lore_map():
         "message": "Lore map created successfully!"
     }), 201
 
+# Add this endpoint to your backend/app.py file, after the other LoreMap routes
+
+@app.route('/api/loremaps/<int:id>', methods=['DELETE'])
+def delete_lore_map(id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Check if lore map exists and belongs to user
+    lore_map = LoreMap.query.filter_by(id=id, user_id=user_id).first()
+    if not lore_map:
+        return jsonify({"error": "Campaign not found"}), 404
+    
+    try:
+        # Delete the lore map (cascade will handle events and connections)
+        db.session.delete(lore_map)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Campaign deleted successfully!"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete campaign"}), 500
+
 @app.route('/api/loremaps/<int:id>', methods=['GET'])
 def get_lore_map(id):
     user_id = session.get('user_id')

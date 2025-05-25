@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './CharacterManager.css';
+import { rollAbilityCheck, rollFromNotation } from '../../utils/diceUtils';
+import DiceRollModal from '../common/DiceRollModal';
 
 const CharacterManager = ({ user }) => {
   const [characters, setCharacters] = useState([]);
@@ -10,6 +12,8 @@ const CharacterManager = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [diceRollResult, setDiceRollResult] = useState(null);
+  const [rollActionName, setRollActionName] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     character_type: 'NPC',
@@ -53,6 +57,39 @@ const CharacterManager = ({ user }) => {
   useEffect(() => {
     fetchCharacters();
   }, [fetchCharacters]);
+
+  // Roll ability check
+  const handleAbilityRoll = (abilityName, abilityScore) => {
+    const result = rollAbilityCheck(abilityScore);
+    setDiceRollResult(result);
+    setRollActionName(`${abilityName} Check`);
+  };
+
+  // Roll custom action
+  const handleActionRoll = (actionName, actionDescription) => {
+    // Try to extract dice notation from action description
+    const diceMatch = actionDescription.match(/(\d+d\d+(?:[+-]\d+)?)/i);
+    
+    if (diceMatch) {
+      const result = rollFromNotation(diceMatch[0]);
+      if (result) {
+        setDiceRollResult(result);
+        setRollActionName(actionName);
+        return;
+      }
+    }
+    
+    // Fallback to 1d20 if no dice notation found
+    const result = rollFromNotation('1d20');
+    setDiceRollResult(result);
+    setRollActionName(actionName);
+  };
+
+  // Close dice modal
+  const closeDiceModal = () => {
+    setDiceRollResult(null);
+    setRollActionName('');
+  };
 
   // Create a new character
   const handleCreate = async () => {
@@ -459,6 +496,84 @@ const CharacterManager = ({ user }) => {
     );
   };
 
+  // Helper function to render character stats with dice rolling
+  function renderCharacterStats() {
+    if (!selectedCharacter) return null;
+    
+    // Parse stats if needed
+    const stats = typeof selectedCharacter.stats === 'string' 
+      ? JSON.parse(selectedCharacter.stats) 
+      : selectedCharacter.stats;
+    
+    return (
+      <>
+        <div className="stats-grid">
+          <div className="stat-item" onClick={() => handleAbilityRoll('Strength', stats.strength)}>
+            <span className="stat-label">STR</span>
+            <span className="stat-value">{stats.strength}</span>
+            <button className="stat-roll-btn">Roll</button>
+          </div>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Dexterity', stats.dexterity)}>
+            <span className="stat-label">DEX</span>
+            <span className="stat-value">{stats.dexterity}</span>
+            <button className="stat-roll-btn">Roll</button>
+          </div>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Constitution', stats.constitution)}>
+            <span className="stat-label">CON</span>
+            <span className="stat-value">{stats.constitution}</span>
+            <button className="stat-roll-btn">Roll</button>
+          </div>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Intelligence', stats.intelligence)}>
+            <span className="stat-label">INT</span>
+            <span className="stat-value">{stats.intelligence}</span>
+            <button className="stat-roll-btn">Roll</button>
+          </div>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Wisdom', stats.wisdom)}>
+            <span className="stat-label">WIS</span>
+            <span className="stat-value">{stats.wisdom}</span>
+            <button className="stat-roll-btn">Roll</button>
+          </div>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Charisma', stats.charisma)}>
+            <span className="stat-label">CHA</span>
+            <span className="stat-value">{stats.charisma}</span>
+            <button className="stat-roll-btn">Roll</button>
+          </div>
+        </div>
+        
+        <div className="combat-stats">
+          <div className="combat-stat">
+            <span className="stat-label">AC</span>
+            <span className="stat-value">{stats.armorClass}</span>
+          </div>
+          <div className="combat-stat">
+            <span className="stat-label">HP</span>
+            <span className="stat-value">{stats.hitPoints}</span>
+          </div>
+        </div>
+        
+        {stats.actions && stats.actions.length > 0 && (
+          <div className="character-actions">
+            <h3>Actions</h3>
+            <div className="actions-list">
+              {stats.actions.map((action, index) => (
+                <div key={index} className="action-item">
+                  <div className="action-name">{action.name}</div>
+                  <div className="action-description">{action.description}</div>
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleActionRoll(action.name, action.description)}
+                  >
+                    Roll
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   // Main component render
   if (loading) {
     return <div className="loading">Loading characters...</div>;
@@ -564,8 +679,6 @@ const CharacterManager = ({ user }) => {
             
             <div className="character-stats">
               <h3>Stats</h3>
-              {/* Render character stats appropriately */}
-              {/* You'll need to parse the stats JSON if it's stored as a string */}
               {renderCharacterStats()}
             </div>
           </div>
@@ -577,75 +690,15 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
       </div>
+
+      {/* Dice Roll Modal */}
+      <DiceRollModal 
+        rollResult={diceRollResult}
+        onClose={closeDiceModal}
+        actionName={rollActionName}
+      />
     </div>
   );
-  
-  // Helper function to render character stats
-  function renderCharacterStats() {
-    if (!selectedCharacter) return null;
-    
-    // Parse stats if needed
-    const stats = typeof selectedCharacter.stats === 'string' 
-      ? JSON.parse(selectedCharacter.stats) 
-      : selectedCharacter.stats;
-    
-    return (
-      <>
-        <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-label">STR</span>
-            <span className="stat-value">{stats.strength}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">DEX</span>
-            <span className="stat-value">{stats.dexterity}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">CON</span>
-            <span className="stat-value">{stats.constitution}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">INT</span>
-            <span className="stat-value">{stats.intelligence}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">WIS</span>
-            <span className="stat-value">{stats.wisdom}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">CHA</span>
-            <span className="stat-value">{stats.charisma}</span>
-          </div>
-        </div>
-        
-        <div className="combat-stats">
-          <div className="combat-stat">
-            <span className="stat-label">AC</span>
-            <span className="stat-value">{stats.armorClass}</span>
-          </div>
-          <div className="combat-stat">
-            <span className="stat-label">HP</span>
-            <span className="stat-value">{stats.hitPoints}</span>
-          </div>
-        </div>
-        
-        {stats.actions && stats.actions.length > 0 && (
-          <div className="character-actions">
-            <h3>Actions</h3>
-            <div className="actions-list">
-              {stats.actions.map((action, index) => (
-                <div key={index} className="action-item">
-                  <div className="action-name">{action.name}</div>
-                  <div className="action-description">{action.description}</div>
-                  <button className="roll-btn">Roll</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </>
-    );
-  }
 };
 
 export default CharacterManager;
