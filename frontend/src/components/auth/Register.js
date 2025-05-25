@@ -33,7 +33,7 @@ const Register = () => {
     }
     
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_URL = config.apiUrl || 'http://localhost:5000';
       console.log('Sending request to:', `${API_URL}/api/register`); // Debug log
       
       const response = await fetch(`${API_URL}/api/register`, {
