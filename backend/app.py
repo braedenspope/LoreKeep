@@ -38,12 +38,13 @@ frontend_url = os.environ.get('FRONTEND_URL')
 if frontend_url:
     frontend_urls.append(frontend_url)
 
+# TEMPORARY - for testing only
 CORS(app, 
      supports_credentials=True, 
-     origins=frontend_urls,
-     allow_headers=['Content-Type', 'Authorization'], 
+     origins="*",  # This allows all origins - NOT for production
+     allow_headers=['Content-Type'], 
      expose_headers=['Set-Cookie'],
-     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+     allow_methods=['GET', 'POST', 'PUT', 'DELETE'])
 
 db = SQLAlchemy(app)
 
