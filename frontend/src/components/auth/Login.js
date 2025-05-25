@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Auth.css';
+import config from '../../config';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
@@ -24,7 +25,7 @@ const Login = ({ onLogin }) => {
     
     try {
       // Connect to your Flask backend
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch(`${config.apiUrl}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
