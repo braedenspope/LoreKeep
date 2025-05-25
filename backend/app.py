@@ -26,19 +26,24 @@ else:
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Configure CORS for production
-frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-allowed_origins = [
-    frontend_url,
+frontend_urls = [
     'http://localhost:3000',
-    'https://*.vercel.app'
+    'https://localhost:3000', 
+    'https://lorekeep-frontend.vercel.app',  # Replace with your actual Vercel URL
+    'https://*.vercel.app'  # This allows any Vercel subdomain
 ]
+
+# If you have a specific frontend URL from environment
+frontend_url = os.environ.get('FRONTEND_URL')
+if frontend_url:
+    frontend_urls.append(frontend_url)
 
 CORS(app, 
      supports_credentials=True, 
-     origins=allowed_origins,
-     allow_headers=['Content-Type'], 
+     origins=frontend_urls,
+     allow_headers=['Content-Type', 'Authorization'], 
      expose_headers=['Set-Cookie'],
-     allow_methods=['GET', 'POST', 'PUT', 'DELETE'])
+     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 db = SQLAlchemy(app)
 
