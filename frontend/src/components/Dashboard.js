@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
-import config from '../../config';
+import config from '../config';
 
 const Dashboard = ({ user }) => {
   const [loreMaps, setLoreMaps] = useState([]);

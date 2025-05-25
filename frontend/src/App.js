@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
 import './App.css';
-import config from '../../config';
+import config from './config';
 
 // Import auth components
 import Login from './components/auth/Login';
