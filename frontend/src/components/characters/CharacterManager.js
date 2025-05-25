@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './CharacterManager.css';
 import { rollAbilityCheck, rollFromNotation } from '../../utils/diceUtils';
 import DiceRollModal from '../common/DiceRollModal';
+import config from '../../config';
 
 const CharacterManager = ({ user }) => {
   const [characters, setCharacters] = useState([]);
@@ -35,7 +36,7 @@ const CharacterManager = ({ user }) => {
   const fetchCharacters = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/characters', {
+      const response = await fetch(`${config.apiUrl}/api/characters`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -94,7 +95,7 @@ const CharacterManager = ({ user }) => {
   // Create a new character
   const handleCreate = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/characters', {
+      const response = await fetch(`${config.apiUrl}/api/characters`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ const CharacterManager = ({ user }) => {
     if (!selectedCharacter) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/characters/${selectedCharacter.id}`, {
+      const response = await fetch(`${config.apiUrl}/api/characters/${selectedCharacter.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ const CharacterManager = ({ user }) => {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/characters/${selectedCharacter.id}`, {
+      const response = await fetch(`${config.apiUrl}/api/characters/${selectedCharacter.id}`, {
         method: 'DELETE',
         credentials: 'include'
       });

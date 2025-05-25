@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoreMap from './LoreMap';
 import './LoreMapEditor.css';
+import config from '../../config';
 
 const LoreMapEditor = ({ user }) => {
   const { id } = useParams();
@@ -15,7 +16,7 @@ const LoreMapEditor = ({ user }) => {
   const fetchLoreMap = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/loremaps/${id}`, {
+      const response = await fetch(`${config.apiUrl}/api/loremaps/${id}`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -49,7 +50,7 @@ const LoreMapEditor = ({ user }) => {
       
       // Save each event that doesn't have an ID (new events)
       for (const event of loreMap.events.filter(e => !e.id || e.id > 1000000)) {
-        await fetch(`http://localhost:5000/api/loremaps/${id}/events`, {
+        await fetch(`${config.apiUrl}/api/loremaps/${id}/events`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -70,7 +71,7 @@ const LoreMapEditor = ({ user }) => {
       
       // Update existing events
       for (const event of loreMap.events.filter(e => e.id && e.id <= 1000000)) {
-        await fetch(`http://localhost:5000/api/events/${event.id}`, {
+        await fetch(`${config.apiUrl}/api/events/${event.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -91,7 +92,7 @@ const LoreMapEditor = ({ user }) => {
       
       // Save each connection that doesn't have an ID (new connections)
       for (const conn of loreMap.connections.filter(c => !c.id || c.id > 1000000)) {
-        await fetch(`http://localhost:5000/api/loremaps/${id}/connections`, {
+        await fetch(`${config.apiUrl}/api/loremaps/${id}/connections`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

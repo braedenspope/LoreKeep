@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
+import config from '../../config';
 
 const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => {
   const [events, setEvents] = useState(initialEvents || []);
@@ -54,7 +55,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   useEffect(() => {
     const fetchCharacters = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/characters', {
+        const response = await fetch(`${config.apiUrl}/api/characters`, {
           method: 'GET',
           credentials: 'include'
         });
@@ -76,7 +77,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     if (editingEvent && editingEvent.id && editingEvent.id <= 1000000) {
       const fetchEventCharacters = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/events/${editingEvent.id}/characters`, {
+          const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters`, {
             method: 'GET',
             credentials: 'include'
           });
@@ -94,7 +95,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       
       // Set battle map preview if event has one
       if (editingEvent.battle_map_url) {
-        setBattleMapPreview(`http://localhost:5000${editingEvent.battle_map_url}`);
+        setBattleMapPreview(`${config.apiUrl}${editingEvent.battle_map_url}`);
       }
     } else {
       setEventCharacters([]);
@@ -180,7 +181,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     
     // Set battle map preview if event has one
     if (event.battle_map_url) {
-      setBattleMapPreview(`http://localhost:5000${event.battle_map_url}`);
+      setBattleMapPreview(`${config.apiUrl}${event.battle_map_url}`);
     } else {
       setBattleMapPreview(null);
     }
@@ -205,7 +206,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const handleRemoveBattleMap = async () => {
     if (editingEvent && editingEvent.id && editingEvent.id <= 1000000) {
       try {
-        const response = await fetch(`http://localhost:5000/api/events/${editingEvent.id}/battle-map`, {
+        const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/battle-map`, {
           method: 'DELETE',
           credentials: 'include'
         });
@@ -250,7 +251,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     
     try {
       if (editingEvent.id && editingEvent.id <= 1000000) {
-        const response = await fetch(`http://localhost:5000/api/events/${editingEvent.id}/characters`, {
+        const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -280,7 +281,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     
     try {
       if (editingEvent.id && editingEvent.id <= 1000000) {
-        const response = await fetch(`http://localhost:5000/api/events/${editingEvent.id}/characters/${characterId}`, {
+        const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters/${characterId}`, {
           method: 'DELETE',
           credentials: 'include'
         });
@@ -312,7 +313,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           formData.append('battle_map', battleMapFile);
           
           // Upload the battle map
-          const uploadResponse = await fetch(`http://localhost:5000/api/events/${editingEvent.id}/battle-map`, {
+          const uploadResponse = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/battle-map`, {
             method: 'POST',
             credentials: 'include',
             body: formData
@@ -327,7 +328,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         }
         
         // Update the event details in the backend
-        const response = await fetch(`http://localhost:5000/api/events/${editingEvent.id}`, {
+        const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

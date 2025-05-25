@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Auth.css';
+import config from '../../config';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -33,7 +34,7 @@ const Register = () => {
     
     try {
       // Connect to your Flask backend
-      const response = await fetch('http://localhost:5000/api/register', {
+      const response = await fetch(`${config.apiUrl}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

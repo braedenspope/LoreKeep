@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
+import config from '../../config';
 
 const Dashboard = ({ user }) => {
   const [loreMaps, setLoreMaps] = useState([]);
@@ -19,7 +20,7 @@ const Dashboard = ({ user }) => {
   const fetchLoreMaps = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/loremaps', {
+      const response = await fetch(`${config.apiUrl}/api/loremaps`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -43,7 +44,7 @@ const Dashboard = ({ user }) => {
     e.preventDefault();
     
     try {
-      const response = await fetch('http://localhost:5000/api/loremaps', {
+      const response = await fetch(`${config.apiUrl}/api/loremaps`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ const Dashboard = ({ user }) => {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/loremaps/${id}`, {
+      const response = await fetch(`${config.apiUrl}/api/loremaps/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });

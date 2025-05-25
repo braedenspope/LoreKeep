@@ -1,41 +1,44 @@
-from flask import Flask, jsonify, request, session, send_from_directory
+from flask import Flask, jsonify, request, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 import json
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-for-testing')
 
-# Configure CORS to allow requests from React frontend
+# Production configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-fallback-key-change-in-production')
+
+# Database configuration - handle both local and production
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Fix for Render/Heroku postgres URL format
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    # Local development fallback
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lorekeep.db'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Configure CORS for production
+frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+allowed_origins = [
+    frontend_url,
+    'http://localhost:3000',
+    'https://*.vercel.app'
+]
+
 CORS(app, 
      supports_credentials=True, 
-     origins=['http://localhost:3000'], 
+     origins=allowed_origins,
      allow_headers=['Content-Type'], 
      expose_headers=['Set-Cookie'],
      allow_methods=['GET', 'POST', 'PUT', 'DELETE'])
-
-# Configure database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lorekeep.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Configure file uploads
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-# Create uploads directory if it doesn't exist
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
-
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db = SQLAlchemy(app)
 
@@ -725,17 +728,20 @@ def remove_character_from_event(event_id, character_id):
 
 # Main application entry point
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    
     with app.app_context():
         db.create_all()  # Create database tables
         
-        # Create a test user if none exists
-        if not User.query.filter_by(username='test').first():
-            test_user = User(
-                username='test',
-                email='test@example.com',
-                password_hash=generate_password_hash('password')
+        # Create a demo user if none exists (for testing)
+        if not User.query.filter_by(username='demo').first():
+            demo_user = User(
+                username='demo',
+                email='demo@example.com',
+                password_hash=generate_password_hash('demo123')
             )
-            db.session.add(test_user)
+            db.session.add(demo_user)
             db.session.commit()
+            print("Demo user created: username='demo', password='demo123'")
     
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)

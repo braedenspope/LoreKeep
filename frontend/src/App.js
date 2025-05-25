@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
 import './App.css';
+import config from '../../config';
 
 // Import auth components
 import Login from './components/auth/Login';
@@ -27,7 +28,7 @@ function App() {
         
         if (savedUser) {
           // Validate the session with the server
-          const response = await fetch('http://localhost:5000/api/validate-session', {
+          const response = await fetch(`${config.apiUrl}/api/validate-session`, {
             method: 'GET',
             credentials: 'include' // Include cookies for session-based auth
           }).catch(() => {
@@ -64,7 +65,7 @@ function App() {
   const handleLogout = async () => {
     try {
       // Call the logout endpoint
-      await fetch('http://localhost:5000/api/logout', {
+      await fetch(`${config.apiUrl}/api/logout`, {
         method: 'POST',
         credentials: 'include'
       });
