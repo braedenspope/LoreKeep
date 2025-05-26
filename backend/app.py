@@ -9,8 +9,14 @@ import json
 # Initialize Flask app
 app = Flask(__name__)
 
-# Production configuration
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-fallback-key-change-in-production')
+# Add this after app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-fallback-key')
+
+# Add these session configuration settings
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-origin
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Don't restrict domain
 
 # Database configuration - handle both local and production
 database_url = os.environ.get('DATABASE_URL')
@@ -25,26 +31,18 @@ else:
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configure CORS for production
-frontend_urls = [
-    'http://localhost:3000',
-    'https://localhost:3000', 
-    'https://lorekeep-frontend.vercel.app',  # Replace with your actual Vercel URL
-    'https://*.vercel.app'  # This allows any Vercel subdomain
-]
 
 # If you have a specific frontend URL from environment
-frontend_url = os.environ.get('FRONTEND_URL')
-if frontend_url:
-    frontend_urls.append(frontend_url)
+# Configure CORS for production
+frontend_url = os.environ.get('https://lorekeep-frontend.vercel.app', 'http://localhost:3000')
 
-# TEMPORARY - for testing only
 CORS(app, 
      supports_credentials=True, 
-     origins="*",  # This allows all origins - NOT for production
-     allow_headers=['Content-Type'], 
+     origins=[frontend_url, 'http://localhost:3000'],  # Remove the wildcard
+     allow_headers=['Content-Type', 'Authorization'], 
      expose_headers=['Set-Cookie'],
-     allow_methods=['GET', 'POST', 'PUT', 'DELETE'])
+     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     supports_credentials=True)  # Make sure this is set
 
 db = SQLAlchemy(app)
 
