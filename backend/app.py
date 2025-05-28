@@ -34,31 +34,25 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 from flask_cors import CORS
 
-# Configure CORS properly
-frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-
-# List of allowed origins
-allowed_origins = [
+# Configure CORS for production
+frontend_urls = [
     'http://localhost:3000',
     'https://localhost:3000',
-    frontend_url
+    'https://lore-keep.vercel.app',  # This is your actual Vercel URL
+    os.environ.get('FRONTEND_URL')  # Keep this as backup
 ]
 
-# Remove any None values
-allowed_origins = [url for url in allowed_origins if url]
+# Remove None values
+frontend_urls = [url for url in frontend_urls if url]
 
-print(f"CORS allowed origins: {allowed_origins}")  # Debug log
+print(f"CORS allowed origins: {frontend_urls}")  # Debug log
 
 CORS(app, 
-     resources={
-         r"/api/*": {
-             "origins": allowed_origins,
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization"],
-             "expose_headers": ["Set-Cookie"],
-             "supports_credentials": True
-         }
-     })
+     origins=frontend_urls,
+     allow_headers=['Content-Type', 'Authorization'], 
+     expose_headers=['Set-Cookie'],
+     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     supports_credentials=True)
 
 db = SQLAlchemy(app)
 
