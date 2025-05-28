@@ -105,11 +105,27 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
 
   // Check if event conditions are met
   const checkEventConditions = (event) => {
-    // Make sure conditions is an array
-    const conditions = Array.isArray(event.conditions) 
-      ? event.conditions 
-      : (event.conditions ? JSON.parse(event.conditions) : []);
-      
+    let conditions = [];
+    
+    // Handle different types of conditions data
+    if (event.conditions) {
+      if (Array.isArray(event.conditions)) {
+        // Already an array
+        conditions = event.conditions;
+      } else if (typeof event.conditions === 'string') {
+        // It's a JSON string, parse it
+        try {
+          conditions = JSON.parse(event.conditions);
+        } catch (e) {
+          console.warn('Failed to parse conditions:', event.conditions);
+          conditions = [];
+        }
+      } else if (typeof event.conditions === 'object') {
+        // It's already an object but not an array
+        conditions = [event.conditions];
+      }
+    }
+    
     if (!conditions || conditions.length === 0) {
       return true;
     }
