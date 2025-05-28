@@ -105,11 +105,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
 
   // Check if event conditions are met
   const checkEventConditions = (event) => {
-    if (!event.conditions || event.conditions.length === 0) {
+    // Make sure conditions is an array
+    const conditions = Array.isArray(event.conditions) 
+      ? event.conditions 
+      : (event.conditions ? JSON.parse(event.conditions) : []);
+      
+    if (!conditions || conditions.length === 0) {
       return true;
     }
     
-    return event.conditions.every(condition => {
+    return conditions.every(condition => {
       switch (condition.type) {
         case 'event_completed':
           const isCompleted = eventStates[`event_${condition.target}_completed`] || false;
