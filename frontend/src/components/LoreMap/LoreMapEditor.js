@@ -44,7 +44,83 @@ const LoreMapEditor = ({ user }) => {
     setLoreMap(updatedMap);
   };
 
-  const handleSaveChanges = async () => {
+  // Modified to redirect to dashboard after saving
+  const handleSaveAndReturn = async () => {
+    try {
+      setSaving(true);
+      
+      // Save each event that doesn't have an ID (new events)
+      for (const event of loreMap.events.filter(e => !e.id || e.id > 1000000)) {
+        await fetch(`${config.apiUrl}/api/loremaps/${id}/events`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: event.title,
+            description: event.description,
+            location: event.location,
+            position: {
+              x: event.position.x,
+              y: event.position.y
+            },
+            is_party_location: event.isPartyLocation
+          })
+        });
+      }
+      
+      // Update existing events
+      for (const event of loreMap.events.filter(e => e.id && e.id <= 1000000)) {
+        await fetch(`${config.apiUrl}/api/events/${event.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: event.title,
+            description: event.description,
+            location: event.location,
+            position: {
+              x: event.position.x,
+              y: event.position.y
+            },
+            is_party_location: event.isPartyLocation
+          })
+        });
+      }
+      
+      // Save each connection that doesn't have an ID (new connections)
+      for (const conn of loreMap.connections.filter(c => !c.id || c.id > 1000000)) {
+        await fetch(`${config.apiUrl}/api/loremaps/${id}/connections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            from: conn.from,
+            to: conn.to,
+            description: conn.description || ''
+          })
+        });
+      }
+      
+      // Show success message briefly, then redirect
+      alert('Campaign saved successfully!');
+      navigate('/dashboard');
+      
+    } catch (err) {
+      console.error('Failed to save changes:', err);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Keep the original save function for quick saves without redirect
+  const handleQuickSave = async () => {
     try {
       setSaving(true);
       
@@ -138,6 +214,11 @@ const LoreMapEditor = ({ user }) => {
     }
   };
 
+  // Direct navigation to dashboard
+  const handleReturnToDashboard = () => {
+    navigate('/dashboard');
+  };
+
   if (loading) {
     return <div className="loading">Loading campaign...</div>;
   }
@@ -156,10 +237,17 @@ const LoreMapEditor = ({ user }) => {
       <div className="editor-toolbox">
         <button 
           className="editor-button" 
-          onClick={handleSaveChanges}
+          onClick={handleQuickSave}
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving...' : 'Quick Save'}
+        </button>
+        <button 
+          className="editor-button" 
+          onClick={handleSaveAndReturn}
+          disabled={saving}
+        >
+          {saving ? 'Saving...' : 'Save & Return to Dashboard'}
         </button>
         <button 
           className="editor-button secondary" 
@@ -169,9 +257,9 @@ const LoreMapEditor = ({ user }) => {
         </button>
         <button 
           className="editor-button secondary" 
-          onClick={() => navigate('/dashboard')}
+          onClick={handleReturnToDashboard}
         >
-          Back to Dashboard
+          Return to Dashboard
         </button>
       </div>
       
