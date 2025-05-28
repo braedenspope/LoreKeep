@@ -1,16 +1,19 @@
-// Create this file: frontend/src/components/LoreMap/EventConditions.js
-
 import React, { useState } from 'react';
 import './EventConditions.css';
 
 const EventConditions = ({ conditions, onConditionsChange, availableEvents, availableCharacters }) => {
   const [showAddCondition, setShowAddCondition] = useState(false);
   const [newCondition, setNewCondition] = useState({
-    type: 'event_completed', // event_completed, character_freed, character_alive, custom
+    type: 'event_completed',
     target: '',
     description: '',
-    required: true // true = must be true, false = must be false
+    required: true
   });
+
+  // Add safety checks for props
+  const safeConditions = Array.isArray(conditions) ? conditions : [];
+  const safeAvailableEvents = Array.isArray(availableEvents) ? availableEvents : [];
+  const safeAvailableCharacters = Array.isArray(availableCharacters) ? availableCharacters : [];
 
   // Add a new condition
   const handleAddCondition = () => {
@@ -22,7 +25,7 @@ const EventConditions = ({ conditions, onConditionsChange, availableEvents, avai
       description: newCondition.description || generateDescription(newCondition)
     };
     
-    onConditionsChange([...conditions, conditionToAdd]);
+    onConditionsChange([...safeConditions, conditionToAdd]);
     setNewCondition({
       type: 'event_completed',
       target: '',
@@ -34,7 +37,7 @@ const EventConditions = ({ conditions, onConditionsChange, availableEvents, avai
 
   // Remove a condition
   const handleRemoveCondition = (conditionId) => {
-    onConditionsChange(conditions.filter(c => c.id !== conditionId));
+    onConditionsChange(safeConditions.filter(c => c.id !== conditionId));
   };
 
   // Generate description for condition
@@ -64,10 +67,10 @@ const EventConditions = ({ conditions, onConditionsChange, availableEvents, avai
   // Get target name for display
   const getTargetName = (targetId, type) => {
     if (type === 'event_completed') {
-      const event = availableEvents.find(e => e.id.toString() === targetId);
+      const event = safeAvailableEvents.find(e => e.id.toString() === targetId);
       return event ? event.title : 'Unknown Event';
     } else if (type === 'character_freed' || type === 'character_alive') {
-      const character = availableCharacters.find(c => c.id.toString() === targetId);
+      const character = safeAvailableCharacters.find(c => c.id.toString() === targetId);
       return character ? character.name : 'Unknown Character';
     }
     return targetId;
@@ -85,11 +88,11 @@ const EventConditions = ({ conditions, onConditionsChange, availableEvents, avai
         </button>
       </div>
 
-      {conditions.length === 0 ? (
+      {safeConditions.length === 0 ? (
         <p className="no-conditions">No conditions set. This event is always accessible.</p>
       ) : (
         <div className="conditions-list">
-          {conditions.map(condition => (
+          {safeConditions.map(condition => (
             <div key={condition.id} className="condition-item">
               <div className="condition-content">
                 <span className={`condition-type ${condition.type}`}>
@@ -136,7 +139,7 @@ const EventConditions = ({ conditions, onConditionsChange, availableEvents, avai
                   onChange={(e) => setNewCondition({...newCondition, target: e.target.value})}
                 >
                   <option value="">Select an event...</option>
-                  {availableEvents.map(event => (
+                  {safeAvailableEvents.map(event => (
                     <option key={event.id} value={event.id}>
                       {event.title}
                     </option>
@@ -153,7 +156,7 @@ const EventConditions = ({ conditions, onConditionsChange, availableEvents, avai
                   onChange={(e) => setNewCondition({...newCondition, target: e.target.value})}
                 >
                   <option value="">Select a character...</option>
-                  {availableCharacters.map(character => (
+                  {safeAvailableCharacters.map(character => (
                     <option key={character.id} value={character.id}>
                       {character.name}
                     </option>
