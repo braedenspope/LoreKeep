@@ -32,16 +32,33 @@ else:
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
-# If you have a specific frontend URL from environment
-# Configure CORS for production
-frontend_url = os.environ.get('https://lorekeep-frontend.vercel.app', 'http://localhost:3000')
+from flask_cors import CORS
 
-CORS(app,  
-     origins=[frontend_url, 'http://localhost:3000'],  # Remove the wildcard
-     allow_headers=['Content-Type', 'Authorization'], 
-     expose_headers=['Set-Cookie'],
-     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     supports_credentials=True)  # Make sure this is set
+# Configure CORS properly
+frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
+# List of allowed origins
+allowed_origins = [
+    'http://localhost:3000',
+    'https://localhost:3000',
+    frontend_url
+]
+
+# Remove any None values
+allowed_origins = [url for url in allowed_origins if url]
+
+print(f"CORS allowed origins: {allowed_origins}")  # Debug log
+
+CORS(app, 
+     resources={
+         r"/api/*": {
+             "origins": allowed_origins,
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization"],
+             "expose_headers": ["Set-Cookie"],
+             "supports_credentials": True
+         }
+     })
 
 db = SQLAlchemy(app)
 
