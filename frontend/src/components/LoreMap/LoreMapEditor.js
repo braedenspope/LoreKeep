@@ -107,9 +107,11 @@ const LoreMapEditor = ({ user }) => {
         });
       }
       
-      // Show success message briefly, then redirect
+      // Show success message briefly, then force navigation
       alert('Campaign saved successfully!');
-      navigate('/dashboard', { replace: true });
+      
+      // Use window.location for guaranteed navigation
+      window.location.href = '/dashboard';
       
     } catch (err) {
       console.error('Failed to save changes:', err);
@@ -216,7 +218,8 @@ const LoreMapEditor = ({ user }) => {
 
   // Direct navigation to dashboard
   const handleReturnToDashboard = () => {
-    navigate('/dashboard', { replace: true });
+    // Use window.location for guaranteed navigation
+    window.location.href = '/dashboard';
   };
 
   if (loading) {
