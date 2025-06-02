@@ -1,4 +1,4 @@
-// In App.js, check your routing setup
+// Updated App.js with better routing handling
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -13,6 +13,47 @@ import Register from './components/auth/Register';
 // Import other components
 import LoreMapEditor from './components/LoreMap/LoreMapEditor';
 import CharacterManager from './components/characters/CharacterManager';
+
+// Create a wrapper component to handle route changes
+function AppRoutes({ isAuthenticated, user, handleLogin }) {
+  const location = useLocation();
+  
+  // Force re-render when location changes
+  useEffect(() => {
+    console.log('Route changed to:', location.pathname);
+  }, [location]);
+
+  return (
+    <Routes>
+      <Route path="/login" element={
+        !isAuthenticated ? 
+          <Login onLogin={handleLogin} /> : 
+          <Navigate to="/dashboard" replace />
+      } />
+      <Route path="/register" element={
+        !isAuthenticated ? 
+          <Register /> : 
+          <Navigate to="/dashboard" replace />
+      } />
+      <Route path="/dashboard" element={
+        isAuthenticated ? 
+          <Dashboard user={user} key={location.pathname} /> : 
+          <Navigate to="/login" replace />
+      } />
+      <Route path="/loremap/:id" element={
+        isAuthenticated ? 
+          <LoreMapEditor user={user} key={location.pathname} /> : 
+          <Navigate to="/login" replace />
+      } />
+      <Route path="/characters" element={
+        isAuthenticated ? 
+          <CharacterManager user={user} key={location.pathname} /> : 
+          <Navigate to="/login" replace />
+      } />
+      <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+    </Routes>
+  );
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -88,34 +129,11 @@ function App() {
       <div className="app">
         <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} user={user} />
         <div className="content">
-          <Routes>
-            <Route path="/login" element={
-              !isAuthenticated ? 
-                <Login onLogin={handleLogin} /> : 
-                <Navigate to="/dashboard" />
-            } />
-            <Route path="/register" element={
-              !isAuthenticated ? 
-                <Register /> : 
-                <Navigate to="/dashboard" />
-            } />
-            <Route path="/dashboard" element={
-              isAuthenticated ? 
-                <Dashboard user={user} /> : 
-                <Navigate to="/login" />
-            } />
-            <Route path="/loremap/:id" element={
-              isAuthenticated ? 
-                <LoreMapEditor user={user} /> : 
-                <Navigate to="/login" />
-            } />
-            <Route path="/characters" element={
-              isAuthenticated ? 
-                <CharacterManager user={user} /> : 
-                <Navigate to="/login" />
-            } />
-            <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
-          </Routes>
+          <AppRoutes 
+            isAuthenticated={isAuthenticated} 
+            user={user} 
+            handleLogin={handleLogin}
+          />
         </div>
       </div>
     </Router>

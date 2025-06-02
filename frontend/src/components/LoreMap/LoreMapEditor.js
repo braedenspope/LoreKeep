@@ -109,7 +109,7 @@ const LoreMapEditor = ({ user }) => {
       
       // Show success message briefly, then redirect
       alert('Campaign saved successfully!');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
       
     } catch (err) {
       console.error('Failed to save changes:', err);
@@ -216,7 +216,7 @@ const LoreMapEditor = ({ user }) => {
 
   // Direct navigation to dashboard
   const handleReturnToDashboard = () => {
-    navigate('/dashboard');
+    navigate('/dashboard', { replace: true });
   };
 
   if (loading) {

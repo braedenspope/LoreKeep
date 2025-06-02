@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './Dashboard.css';
 import config from '../config';
 
@@ -11,18 +11,29 @@ const Dashboard = ({ user }) => {
   const [newMapData, setNewMapData] = useState({ title: '', description: '' });
   
   const navigate = useNavigate();
+  const location = useLocation();
 
+  // Force refresh when component mounts or location changes
   useEffect(() => {
+    console.log('Dashboard mounted or location changed:', location.pathname);
     fetchLoreMaps();
-  }, []);
+  }, [location.pathname]); // Add location.pathname as dependency
 
   // Update the fetchLoreMaps function in Dashboard.js
   const fetchLoreMaps = async () => {
+    console.log('Fetching lore maps...');
     setLoading(true);
+    setError(null); // Clear any previous errors
+    
     try {
       const response = await fetch(`${config.apiUrl}/api/loremaps`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        // Add cache-busting parameter to ensure fresh data
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
       
       if (!response.ok) {
@@ -30,6 +41,7 @@ const Dashboard = ({ user }) => {
       }
       
       const data = await response.json();
+      console.log('Fetched lore maps:', data);
       setLoreMaps(data);
     } catch (err) {
       console.error('Failed to fetch lore maps:', err);
@@ -109,6 +121,12 @@ const Dashboard = ({ user }) => {
     }
   };
 
+  // Add a manual refresh button for debugging
+  const handleManualRefresh = () => {
+    console.log('Manual refresh triggered');
+    fetchLoreMaps();
+  };
+
   if (loading) {
     return <div className="loading">Loading your campaigns...</div>;
   }
@@ -117,12 +135,22 @@ const Dashboard = ({ user }) => {
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>Your Campaigns</h2>
-        <button 
-          className="new-map-btn"
-          onClick={() => setShowNewMapForm(true)}
-        >
-          Create New Campaign
-        </button>
+        <div>
+          <button 
+            className="new-map-btn"
+            onClick={() => setShowNewMapForm(true)}
+          >
+            Create New Campaign
+          </button>
+          {/* Temporary debug button */}
+          <button 
+            className="new-map-btn"
+            onClick={handleManualRefresh}
+            style={{ marginLeft: '10px', backgroundColor: '#666' }}
+          >
+            Refresh
+          </button>
+        </div>
       </div>
       
       {error && <div className="error-message">{error}</div>}
@@ -199,6 +227,24 @@ const Dashboard = ({ user }) => {
           </div>
         </div>
       )}
+      
+      {/* Debug info */}
+      <div style={{ 
+        position: 'fixed', 
+        bottom: '10px', 
+        right: '10px', 
+        background: 'rgba(0,0,0,0.7)', 
+        color: 'white', 
+        padding: '10px', 
+        fontSize: '12px',
+        borderRadius: '4px'
+      }}>
+        Debug: {loreMaps.length} campaigns loaded
+        <br />
+        Current path: {location.pathname}
+        <br />
+        Loading: {loading.toString()}
+      </div>
     </div>
   );
 };
