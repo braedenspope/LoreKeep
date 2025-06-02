@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 import config from '../config';
 
@@ -11,33 +11,36 @@ const Dashboard = ({ user }) => {
   const [newMapData, setNewMapData] = useState({ title: '', description: '' });
   
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Force refresh when component mounts or location changes
   useEffect(() => {
-    console.log('Dashboard mounted or location changed:', location.pathname);
+    console.log('Dashboard mounted, user:', user);
     fetchLoreMaps();
-  }, [location.pathname]); // Add location.pathname as dependency
+  }, []); // Remove location dependency for now
 
   // Update the fetchLoreMaps function in Dashboard.js
   const fetchLoreMaps = async () => {
     console.log('Fetching lore maps...');
     setLoading(true);
-    setError(null); // Clear any previous errors
+    setError(null);
     
     try {
       const response = await fetch(`${config.apiUrl}/api/loremaps`, {
         method: 'GET',
-        credentials: 'include',
-        // Add cache-busting parameter to ensure fresh data
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+        credentials: 'include'
       });
       
+      console.log('Lore maps response status:', response.status);
+      
+      if (response.status === 401) {
+        // User is not authenticated, clear localStorage and redirect
+        console.log('User not authenticated, clearing session');
+        localStorage.removeItem('user');
+        window.location.href = '/login'; // Force full page reload to login
+        return;
+      }
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch campaigns');
+        throw new Error(`Failed to fetch campaigns (${response.status})`);
       }
       
       const data = await response.json();
@@ -45,7 +48,13 @@ const Dashboard = ({ user }) => {
       setLoreMaps(data);
     } catch (err) {
       console.error('Failed to fetch lore maps:', err);
-      setError('Failed to load your campaigns. Please try again later.');
+      
+      // Check if it's a network error
+      if (err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check if the backend is running on http://localhost:5000');
+      } else {
+        setError('Failed to load your campaigns. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -67,6 +76,12 @@ const Dashboard = ({ user }) => {
           description: newMapData.description,
         })
       });
+      
+      if (response.status === 401) {
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
       
       if (!response.ok) {
         throw new Error('Failed to create campaign');
@@ -90,8 +105,6 @@ const Dashboard = ({ user }) => {
     setNewMapData({ ...newMapData, [name]: value });
   };
 
-  // Replace the handleDeleteMap function in Dashboard.js with this:
-
   const handleDeleteMap = async (id, title) => {
     // Confirm deletion
     if (!window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
@@ -104,6 +117,12 @@ const Dashboard = ({ user }) => {
         credentials: 'include'
       });
       
+      if (response.status === 401) {
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete campaign');
@@ -112,7 +131,6 @@ const Dashboard = ({ user }) => {
       // Remove from local state
       setLoreMaps(loreMaps.filter(map => map.id !== id));
       
-      // Optional: Show success message
       console.log('Campaign deleted successfully');
       
     } catch (err) {
@@ -121,10 +139,19 @@ const Dashboard = ({ user }) => {
     }
   };
 
-  // Add a manual refresh button for debugging
-  const handleManualRefresh = () => {
-    console.log('Manual refresh triggered');
-    fetchLoreMaps();
+  // Check if backend is reachable
+  const checkBackendHealth = async () => {
+    try {
+      const response = await fetch(`${config.apiUrl}/api/test`);
+      if (response.ok) {
+        alert('Backend is reachable! ✅');
+        fetchLoreMaps(); // Retry fetching data
+      } else {
+        alert('Backend responded but with an error');
+      }
+    } catch (err) {
+      alert('Backend is not reachable. Make sure it\'s running on http://localhost:5000');
+    }
   };
 
   if (loading) {
@@ -142,18 +169,28 @@ const Dashboard = ({ user }) => {
           >
             Create New Campaign
           </button>
-          {/* Temporary debug button */}
+          {/* Debug button */}
           <button 
             className="new-map-btn"
-            onClick={handleManualRefresh}
+            onClick={checkBackendHealth}
             style={{ marginLeft: '10px', backgroundColor: '#666' }}
           >
-            Refresh
+            Test Backend
           </button>
         </div>
       </div>
       
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message">
+          {error}
+          <button 
+            onClick={fetchLoreMaps} 
+            style={{ marginLeft: '10px', padding: '5px 10px' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
       
       <div className="lore-maps-grid">
         {loreMaps.length === 0 ? (
@@ -227,24 +264,6 @@ const Dashboard = ({ user }) => {
           </div>
         </div>
       )}
-      
-      {/* Debug info */}
-      <div style={{ 
-        position: 'fixed', 
-        bottom: '10px', 
-        right: '10px', 
-        background: 'rgba(0,0,0,0.7)', 
-        color: 'white', 
-        padding: '10px', 
-        fontSize: '12px',
-        borderRadius: '4px'
-      }}>
-        Debug: {loreMaps.length} campaigns loaded
-        <br />
-        Current path: {location.pathname}
-        <br />
-        Loading: {loading.toString()}
-      </div>
     </div>
   );
 };
