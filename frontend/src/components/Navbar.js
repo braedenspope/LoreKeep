@@ -1,12 +1,27 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = ({ isAuthenticated, onLogout, user }) => {
-  const navigate = useNavigate();
-
+  // Use window.location for reliable navigation
   const handleNavigation = (path) => {
-    navigate(path);
+    console.log('Navigating to:', path);
+    window.location.href = path;
+  };
+
+  // Alternative approach with React Router fallback
+  const handleNavigationWithFallback = (path) => {
+    console.log('Trying to navigate to:', path);
+    
+    // Check if we're already on the target page
+    if (window.location.pathname === path) {
+      console.log('Already on target page, forcing refresh');
+      window.location.reload();
+      return;
+    }
+    
+    // Try to navigate immediately
+    window.location.href = path;
   };
 
   return (
