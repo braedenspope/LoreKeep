@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request, session, redirect, url_for
+from flask import Flask, jsonify, request, session, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 import json
@@ -11,6 +12,20 @@ app = Flask(__name__)
 
 # Add this after app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-fallback-key')
+
+# File upload configuration
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+# Create uploads directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Add these session configuration settings
 app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
@@ -30,9 +45,6 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lorekeep.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-from flask_cors import CORS
 
 # Configure CORS for production
 frontend_urls = [
