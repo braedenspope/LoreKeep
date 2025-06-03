@@ -272,21 +272,29 @@ const CharacterManager = ({ user }) => {
   };
 
   // Start editing character
+  // In CharacterManager.js, update the handleEditClick function:
   const handleEditClick = () => {
     if (!selectedCharacter) return;
     
-    // Parse the stats if it's a string
-    const stats = typeof selectedCharacter.stats === 'string' 
-      ? JSON.parse(selectedCharacter.stats) 
-      : selectedCharacter.stats;
+    // Create a safe form data structure
+    const safeFormData = {
+      name: selectedCharacter.name || '',
+      character_type: selectedCharacter.character_type || 'NPC',
+      description: selectedCharacter.description || '',
+      stats: {
+        strength: selectedCharacter.strength || 10,
+        dexterity: selectedCharacter.dexterity || 10,
+        constitution: selectedCharacter.constitution || 10,
+        intelligence: selectedCharacter.intelligence || 10,
+        wisdom: selectedCharacter.wisdom || 10,
+        charisma: selectedCharacter.charisma || 10,
+        armorClass: selectedCharacter.armor_class || 10,
+        hitPoints: selectedCharacter.hit_points || 1,
+        actions: [] // Empty for now
+      }
+    };
     
-    setFormData({
-      name: selectedCharacter.name,
-      character_type: selectedCharacter.character_type,
-      description: selectedCharacter.description,
-      stats: stats
-    });
-    
+    setFormData(safeFormData);
     setIsEditing(true);
   };
 
@@ -498,79 +506,83 @@ const CharacterManager = ({ user }) => {
   };
 
   // Helper function to render character stats with dice rolling
+  // In your CharacterManager.js, find the renderCharacterStats function and update it:
+
   function renderCharacterStats() {
     if (!selectedCharacter) return null;
     
-    // Parse stats if needed
-    const stats = typeof selectedCharacter.stats === 'string' 
-      ? JSON.parse(selectedCharacter.stats) 
-      : selectedCharacter.stats;
+    // Handle both old and new data formats safely
+    const getStatValue = (statName, defaultValue = 10) => {
+      // Try direct property first
+      if (selectedCharacter[statName] !== undefined) {
+        return selectedCharacter[statName];
+      }
+      
+      // Try stats object (old format)
+      if (selectedCharacter.stats) {
+        const stats = typeof selectedCharacter.stats === 'string' 
+          ? JSON.parse(selectedCharacter.stats) 
+          : selectedCharacter.stats;
+        
+        // Handle old property names
+        if (statName === 'armor_class' && stats.armorClass !== undefined) {
+          return stats.armorClass;
+        }
+        if (statName === 'hit_points' && stats.hitPoints !== undefined) {
+          return stats.hitPoints;
+        }
+        
+        return stats[statName] || defaultValue;
+      }
+      
+      return defaultValue;
+    };
     
     return (
       <>
         <div className="stats-grid">
-          <div className="stat-item" onClick={() => handleAbilityRoll('Strength', stats.strength)}>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Strength', getStatValue('strength'))}>
             <span className="stat-label">STR</span>
-            <span className="stat-value">{stats.strength}</span>
-            <button className="stat-roll-btn">Roll</button>
+            <span className="stat-value">{getStatValue('strength')}</span>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Dexterity', stats.dexterity)}>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Dexterity', getStatValue('dexterity'))}>
             <span className="stat-label">DEX</span>
-            <span className="stat-value">{stats.dexterity}</span>
-            <button className="stat-roll-btn">Roll</button>
+            <span className="stat-value">{getStatValue('dexterity')}</span>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Constitution', stats.constitution)}>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Constitution', getStatValue('constitution'))}>
             <span className="stat-label">CON</span>
-            <span className="stat-value">{stats.constitution}</span>
-            <button className="stat-roll-btn">Roll</button>
+            <span className="stat-value">{getStatValue('constitution')}</span>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Intelligence', stats.intelligence)}>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Intelligence', getStatValue('intelligence'))}>
             <span className="stat-label">INT</span>
-            <span className="stat-value">{stats.intelligence}</span>
-            <button className="stat-roll-btn">Roll</button>
+            <span className="stat-value">{getStatValue('intelligence')}</span>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Wisdom', stats.wisdom)}>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Wisdom', getStatValue('wisdom'))}>
             <span className="stat-label">WIS</span>
-            <span className="stat-value">{stats.wisdom}</span>
-            <button className="stat-roll-btn">Roll</button>
+            <span className="stat-value">{getStatValue('wisdom')}</span>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Charisma', stats.charisma)}>
+          <div className="stat-item" onClick={() => handleAbilityRoll('Charisma', getStatValue('charisma'))}>
             <span className="stat-label">CHA</span>
-            <span className="stat-value">{stats.charisma}</span>
-            <button className="stat-roll-btn">Roll</button>
+            <span className="stat-value">{getStatValue('charisma')}</span>
           </div>
         </div>
         
         <div className="combat-stats">
           <div className="combat-stat">
             <span className="stat-label">AC</span>
-            <span className="stat-value">{stats.armorClass}</span>
+            <span className="stat-value">{getStatValue('armor_class')}</span>
           </div>
           <div className="combat-stat">
             <span className="stat-label">HP</span>
-            <span className="stat-value">{stats.hitPoints}</span>
+            <span className="stat-value">{getStatValue('hit_points')}</span>
           </div>
-        </div>
-        
-        {stats.actions && stats.actions.length > 0 && (
-          <div className="character-actions">
-            <h3>Actions</h3>
-            <div className="actions-list">
-              {stats.actions.map((action, index) => (
-                <div key={index} className="action-item">
-                  <div className="action-name">{action.name}</div>
-                  <div className="action-description">{action.description}</div>
-                  <button 
-                    className="roll-btn"
-                    onClick={() => handleActionRoll(action.name, action.description)}
-                  >
-                    Roll
-                  </button>
-                </div>
-              ))}
+          {selectedCharacter.challenge_rating && (
+            <div className="combat-stat">
+              <span className="stat-label">CR</span>
+              <span className="stat-value">{selectedCharacter.challenge_rating}</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </>
     );
   }

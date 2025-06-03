@@ -127,10 +127,28 @@ class EventConnection(db.Model):
 class Character(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    character_type = db.Column(db.String(50))  # 'PC', 'NPC', 'Monster'
+    character_type = db.Column(db.String(50))
     description = db.Column(db.Text)
-    stats = db.Column(db.Text)  # JSON representation of stats
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    # D&D 5e Ability Scores
+    strength = db.Column(db.Integer, default=10)
+    dexterity = db.Column(db.Integer, default=10)
+    constitution = db.Column(db.Integer, default=10)
+    intelligence = db.Column(db.Integer, default=10)
+    wisdom = db.Column(db.Integer, default=10)
+    charisma = db.Column(db.Integer, default=10)
+    
+    # Combat Stats
+    armor_class = db.Column(db.Integer, default=10)
+    hit_points = db.Column(db.Integer, default=10)
+    
+    # Monster-specific fields
+    challenge_rating = db.Column(db.String(10))
+    creature_type = db.Column(db.String(50))
+    
+    # Official vs User-created
+    is_official = db.Column(db.Boolean, default=False)
     
     # Relationships
     events = db.relationship('EventCharacter', backref='character', lazy=True, cascade='all, delete-orphan')
@@ -552,6 +570,8 @@ def create_connection(lore_map_id):
         "message": "Connection created successfully!"
     }), 201
 
+# Replace the character API endpoints in your backend/app.py
+
 # Character routes
 @app.route('/api/characters', methods=['GET'])
 def get_characters():
@@ -559,17 +579,42 @@ def get_characters():
     if not user_id:
         return jsonify({"error": "Not authenticated"}), 401
     
-    characters = Character.query.filter_by(user_id=user_id).all()
-    result = [{
-        "id": char.id,
-        "name": char.name,
-        "character_type": char.character_type,
-        "description": char.description,
-        "stats": char.stats,
-        "user_id": char.user_id
-    } for char in characters]
-    
-    return jsonify(result)
+    try:
+        # Simple query - get user's characters and official monsters
+        characters = Character.query.filter(
+            db.or_(
+                Character.user_id == user_id,
+                Character.is_official == True
+            )
+        ).all()
+        
+        result = []
+        for char in characters:
+            result.append({
+                "id": char.id,
+                "name": char.name,
+                "character_type": char.character_type,
+                "description": char.description,
+                "strength": char.strength,
+                "dexterity": char.dexterity,
+                "constitution": char.constitution,
+                "intelligence": char.intelligence,
+                "wisdom": char.wisdom,
+                "charisma": char.charisma,
+                "armor_class": char.armor_class,
+                "hit_points": char.hit_points,
+                "challenge_rating": char.challenge_rating,
+                "creature_type": char.creature_type,
+                "is_official": char.is_official,
+                "user_id": char.user_id
+            })
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in get_characters: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/characters', methods=['POST'])
 def create_character():
@@ -579,26 +624,39 @@ def create_character():
     
     data = request.json
     
-    new_character = Character(
-        name=data.get('name', 'New Character'),
-        character_type=data.get('character_type', 'NPC'),
-        description=data.get('description', ''),
-        stats=data.get('stats', '{}'),
-        user_id=user_id
-    )
-    
-    db.session.add(new_character)
-    db.session.commit()
-    
-    return jsonify({
-        "id": new_character.id,
-        "name": new_character.name,
-        "character_type": new_character.character_type,
-        "description": new_character.description,
-        "stats": new_character.stats,
-        "user_id": new_character.user_id,
-        "message": "Character created successfully!"
-    }), 201
+    try:
+        # Simple approach - use only the new column format
+        new_character = Character(
+            name=data.get('name', 'New Character'),
+            character_type=data.get('character_type', 'NPC'),
+            description=data.get('description', ''),
+            strength=data.get('strength', 10),
+            dexterity=data.get('dexterity', 10),
+            constitution=data.get('constitution', 10),
+            intelligence=data.get('intelligence', 10),
+            wisdom=data.get('wisdom', 10),
+            charisma=data.get('charisma', 10),
+            armor_class=data.get('armor_class', 10),
+            hit_points=data.get('hit_points', 1),
+            challenge_rating=data.get('challenge_rating', '0'),
+            creature_type=data.get('creature_type', 'humanoid'),
+            is_official=data.get('is_official', False),
+            user_id=user_id
+        )
+        
+        db.session.add(new_character)
+        db.session.commit()
+        
+        return jsonify({
+            "id": new_character.id,
+            "name": new_character.name,
+            "message": "Character created successfully!"
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating character: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/characters/<int:id>', methods=['GET'])
 def get_character(id):
@@ -606,7 +664,14 @@ def get_character(id):
     if not user_id:
         return jsonify({"error": "Not authenticated"}), 401
     
-    character = Character.query.filter_by(id=id, user_id=user_id).first()
+    character = Character.query.filter(
+        Character.id == id,
+        db.or_(
+            Character.user_id == user_id,
+            db.and_(Character.user_id.is_(None), Character.is_official == True)
+        )
+    ).first()
+    
     if not character:
         return jsonify({"error": "Character not found"}), 404
     
@@ -615,8 +680,18 @@ def get_character(id):
         "name": character.name,
         "character_type": character.character_type,
         "description": character.description,
-        "stats": character.stats,
-        "user_id": character.user_id
+        "user_id": character.user_id,
+        "is_official": character.is_official or False,
+        "strength": character.strength or 10,
+        "dexterity": character.dexterity or 10,
+        "constitution": character.constitution or 10,
+        "intelligence": character.intelligence or 10,
+        "wisdom": character.wisdom or 10,
+        "charisma": character.charisma or 10,
+        "armor_class": character.armor_class or 10,
+        "hit_points": character.hit_points or 1,
+        "creature_type": character.creature_type,
+        "challenge_rating": character.challenge_rating
     })
 
 @app.route('/api/characters/<int:id>', methods=['PUT'])
@@ -625,28 +700,66 @@ def update_character(id):
     if not user_id:
         return jsonify({"error": "Not authenticated"}), 401
     
+    # Only allow users to edit their own characters (not official monsters)
     character = Character.query.filter_by(id=id, user_id=user_id).first()
     if not character:
-        return jsonify({"error": "Character not found"}), 404
+        return jsonify({"error": "Character not found or access denied"}), 404
     
     data = request.json
     
-    character.name = data.get('name', character.name)
-    character.character_type = data.get('character_type', character.character_type)
-    character.description = data.get('description', character.description)
-    character.stats = data.get('stats', character.stats)
-    
-    db.session.commit()
-    
-    return jsonify({
-        "id": character.id,
-        "name": character.name,
-        "character_type": character.character_type,
-        "description": character.description,
-        "stats": character.stats,
-        "user_id": character.user_id,
-        "message": "Character updated successfully!"
-    })
+    try:
+        # Handle both old and new format
+        if 'stats' in data and isinstance(data['stats'], (str, dict)):
+            # Old format
+            stats = data['stats']
+            if isinstance(stats, str):
+                stats = json.loads(stats)
+            
+            character.strength = stats.get('strength', character.strength)
+            character.dexterity = stats.get('dexterity', character.dexterity)
+            character.constitution = stats.get('constitution', character.constitution)
+            character.intelligence = stats.get('intelligence', character.intelligence)
+            character.wisdom = stats.get('wisdom', character.wisdom)
+            character.charisma = stats.get('charisma', character.charisma)
+            character.armor_class = stats.get('armorClass', character.armor_class)
+            character.hit_points = stats.get('hitPoints', character.hit_points)
+        else:
+            # New format - update all fields
+            character.strength = data.get('strength', character.strength)
+            character.dexterity = data.get('dexterity', character.dexterity)
+            character.constitution = data.get('constitution', character.constitution)
+            character.intelligence = data.get('intelligence', character.intelligence)
+            character.wisdom = data.get('wisdom', character.wisdom)
+            character.charisma = data.get('charisma', character.charisma)
+            character.armor_class = data.get('armor_class', character.armor_class)
+            character.hit_points = data.get('hit_points', character.hit_points)
+            character.hit_dice = data.get('hit_dice', character.hit_dice)
+            character.speed = data.get('speed', character.speed)
+            character.size = data.get('size', character.size)
+            character.creature_type = data.get('creature_type', character.creature_type)
+            character.alignment = data.get('alignment', character.alignment)
+            character.challenge_rating = data.get('challenge_rating', character.challenge_rating)
+            character.experience_points = data.get('experience_points', character.experience_points)
+        
+        # Update basic fields
+        character.name = data.get('name', character.name)
+        character.character_type = data.get('character_type', character.character_type)
+        character.description = data.get('description', character.description)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "id": character.id,
+            "name": character.name,
+            "character_type": character.character_type,
+            "description": character.description,
+            "message": "Character updated successfully!"
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating character: {e}")
+        return jsonify({"error": f"Failed to update character: {str(e)}"}), 500
 
 @app.route('/api/characters/<int:id>', methods=['DELETE'])
 def delete_character(id):
@@ -658,12 +771,13 @@ def delete_character(id):
     if not character:
         return jsonify({"error": "Character not found"}), 404
     
-    db.session.delete(character)
-    db.session.commit()
-    
-    return jsonify({
-        "message": "Character deleted successfully!"
-    })
+    try:
+        db.session.delete(character)
+        db.session.commit()
+        return jsonify({"message": "Character deleted successfully!"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 # Event Character routes
 @app.route('/api/events/<int:event_id>/characters', methods=['GET'])
