@@ -31,6 +31,37 @@ const CharacterManager = ({ user }) => {
       actions: []
     }
   });
+
+  // Helper function to safely parse JSON data
+  const safeParseActions = (actionsData) => {
+    if (!actionsData) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(actionsData)) return actionsData;
+    
+    // If it's a string, try to parse it
+    if (typeof actionsData === 'string') {
+      // Check for common invalid values
+      if (actionsData === '[object Object]' || actionsData === 'undefined' || actionsData === 'null') {
+        return [];
+      }
+      
+      try {
+        const parsed = JSON.parse(actionsData);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Could not parse actions data:', actionsData, e);
+        return [];
+      }
+    }
+    
+    // If it's an object, wrap it in an array
+    if (typeof actionsData === 'object') {
+      return [actionsData];
+    }
+    
+    return [];
+  };
   
   // Fetch characters from the backend
   const fetchCharacters = useCallback(async () => {
@@ -96,10 +127,13 @@ const CharacterManager = ({ user }) => {
       const totalAttack = attackRoll.total + attack_bonus;
       
       let damageText = '';
-      if (damage && damage.length > 0) {
+      if (damage && Array.isArray(damage) && damage.length > 0) {
         const damageRolls = damage.map(d => {
-          const damageRoll = rollFromNotation(d.damage_dice);
-          return `${damageRoll.total} ${d.damage_type?.name || ''}`;
+          if (d.damage_dice) {
+            const damageRoll = rollFromNotation(d.damage_dice);
+            return `${damageRoll.total} ${d.damage_type?.name || d.damage_type || ''}`;
+          }
+          return 'No damage dice';
         });
         damageText = ` | Damage: ${damageRolls.join(', ')}`;
       }
@@ -112,7 +146,7 @@ const CharacterManager = ({ user }) => {
       setRollActionName(name);
     } else {
       // Just a regular action roll
-      handleActionRoll(name, action.description);
+      handleActionRoll(name, action.description || action.desc || '');
     }
   };
 
@@ -527,7 +561,7 @@ const CharacterManager = ({ user }) => {
     );
   };
 
-  // Helper function to render character stats with dice rolling
+  // Helper function to render character stats with dice rolling - UPDATED WITH SAFE JSON PARSING
   function renderCharacterStats() {
     if (!selectedCharacter) return null;
     
@@ -619,40 +653,40 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
 
-        {/* Monster Special Abilities */}
+        {/* Monster Special Abilities - FIXED WITH SAFE PARSING */}
         {selectedCharacter.special_abilities && (
           <div className="character-special-abilities">
             <h3>Special Abilities</h3>
             <div className="abilities-list">
-              {JSON.parse(selectedCharacter.special_abilities).map((ability, index) => (
+              {safeParseActions(selectedCharacter.special_abilities).map((ability, index) => (
                 <div key={index} className="ability-item">
-                  <div className="ability-name">{ability.name}</div>
-                  <div className="ability-description">{ability.description}</div>
+                  <div className="ability-name">{ability.name || 'Unnamed Ability'}</div>
+                  <div className="ability-description">{ability.description || ability.desc || 'No description'}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Monster Actions */}
+        {/* Monster Actions - FIXED WITH SAFE PARSING */}
         {selectedCharacter.actions && (
           <div className="character-actions">
             <h3>Actions</h3>
             <div className="actions-list">
-              {JSON.parse(selectedCharacter.actions).map((action, index) => (
+              {safeParseActions(selectedCharacter.actions).map((action, index) => (
                 <div key={index} className="action-item">
-                  <div className="action-name">{action.name}</div>
-                  <div className="action-description">{action.description}</div>
-                  {(action.attack_bonus || (action.damage && action.damage.length > 0)) && (
+                  <div className="action-name">{action.name || 'Unnamed Action'}</div>
+                  <div className="action-description">{action.description || action.desc || 'No description'}</div>
+                  {(action.attack_bonus || (action.damage && Array.isArray(action.damage) && action.damage.length > 0)) && (
                     <div className="action-details">
                       {action.attack_bonus && (
                         <span className="attack-bonus">+{action.attack_bonus} to hit</span>
                       )}
-                      {action.damage && action.damage.length > 0 && (
+                      {action.damage && Array.isArray(action.damage) && action.damage.length > 0 && (
                         <span className="damage-info">
                           {action.damage.map((d, i) => (
                             <span key={i}>
-                              {d.damage_dice} {d.damage_type?.name || ''} damage
+                              {d.damage_dice || 'No dice'} {d.damage_type?.name || d.damage_type || ''} damage
                               {i < action.damage.length - 1 ? ' + ' : ''}
                             </span>
                           ))}
@@ -672,15 +706,15 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
 
-        {/* Legendary Actions */}
+        {/* Legendary Actions - FIXED WITH SAFE PARSING */}
         {selectedCharacter.legendary_actions && (
           <div className="character-legendary-actions">
             <h3>Legendary Actions</h3>
             <div className="legendary-actions-list">
-              {JSON.parse(selectedCharacter.legendary_actions).map((action, index) => (
+              {safeParseActions(selectedCharacter.legendary_actions).map((action, index) => (
                 <div key={index} className="legendary-action-item">
-                  <div className="legendary-action-name">{action.name}</div>
-                  <div className="legendary-action-description">{action.description}</div>
+                  <div className="legendary-action-name">{action.name || 'Unnamed Action'}</div>
+                  <div className="legendary-action-description">{action.description || action.desc || 'No description'}</div>
                   <button 
                     className="roll-btn"
                     onClick={() => handleMonsterActionRoll(action)}
@@ -693,15 +727,15 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
 
-        {/* Reactions */}
+        {/* Reactions - FIXED WITH SAFE PARSING */}
         {selectedCharacter.reactions && (
           <div className="character-reactions">
             <h3>Reactions</h3>
             <div className="reactions-list">
-              {JSON.parse(selectedCharacter.reactions).map((reaction, index) => (
+              {safeParseActions(selectedCharacter.reactions).map((reaction, index) => (
                 <div key={index} className="reaction-item">
-                  <div className="reaction-name">{reaction.name}</div>
-                  <div className="reaction-description">{reaction.description}</div>
+                  <div className="reaction-name">{reaction.name || 'Unnamed Reaction'}</div>
+                  <div className="reaction-description">{reaction.description || reaction.desc || 'No description'}</div>
                 </div>
               ))}
             </div>
