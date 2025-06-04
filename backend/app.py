@@ -150,6 +150,20 @@ class Character(db.Model):
     # Official vs User-created
     is_official = db.Column(db.Boolean, default=False)
     
+    # ADD THESE NEW FIELDS FOR ACTIONS:
+    actions = db.Column(db.Text)  # JSON string for actions like attacks
+    legendary_actions = db.Column(db.Text)  # JSON string for legendary actions
+    special_abilities = db.Column(db.Text)  # JSON string for special abilities
+    reactions = db.Column(db.Text)  # JSON string for reactions
+    
+    # Additional D&D data
+    skills = db.Column(db.Text)  # JSON string for skills
+    damage_resistances = db.Column(db.Text)  # Text field for resistances
+    damage_immunities = db.Column(db.Text)  # Text field for immunities
+    condition_immunities = db.Column(db.Text)  # Text field for condition immunities
+    senses = db.Column(db.Text)  # Text field for senses
+    languages = db.Column(db.Text)  # Text field for languages
+    
     # Relationships
     events = db.relationship('EventCharacter', backref='character', lazy=True, cascade='all, delete-orphan')
 
@@ -925,6 +939,16 @@ def reset_database():
         return jsonify({"message": "Database reset successfully"})
     except Exception as e:
         print(f"Error resetting database: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/import-enhanced-monsters', methods=['POST'])
+def import_enhanced_monsters_endpoint():
+    """Import monsters with full action data"""
+    try:
+        from import_monsters_with_actions import import_enhanced_monsters
+        import_enhanced_monsters()
+        return jsonify({"message": "Enhanced monsters imported successfully!"})
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 # Main application entry point
