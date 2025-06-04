@@ -866,6 +866,17 @@ def remove_character_from_event(event_id, character_id):
         "message": "Character removed from event!"
     })
 
+@app.route('/api/import-monsters', methods=['POST'])
+def import_monsters_endpoint():
+    """Temporary endpoint to import monsters - remove after use"""
+    try:
+        # Import the function from your import script
+        from import_monsters import import_all_dnd_monsters
+        import_all_dnd_monsters()
+        return jsonify({"message": "Monsters imported successfully!"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # Main application entry point
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
