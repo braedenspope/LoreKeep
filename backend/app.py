@@ -899,6 +899,20 @@ def debug_characters():
             "error": str(e),
             "status": "failed"
         })
+    
+@app.route('/api/reset-db', methods=['POST'])
+def reset_database():
+    """DANGEROUS: Reset database - remove after use"""
+    try:
+        print("Dropping all tables...")
+        db.drop_all()
+        print("Creating all tables...")
+        db.create_all()
+        print("Database reset complete!")
+        return jsonify({"message": "Database reset successfully"})
+    except Exception as e:
+        print(f"Error resetting database: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # Main application entry point
 if __name__ == '__main__':
