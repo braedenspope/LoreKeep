@@ -943,12 +943,26 @@ def reset_database():
     
 @app.route('/api/import-enhanced-monsters', methods=['POST'])
 def import_enhanced_monsters_endpoint():
-    """Import monsters with full action data"""
+    """Import monsters with full action data - REMOVE AFTER USE"""
     try:
         from import_monsters_with_actions import import_enhanced_monsters
         import_enhanced_monsters()
         return jsonify({"message": "Enhanced monsters imported successfully!"})
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/reset-db-with-actions', methods=['POST'])
+def reset_database_with_actions():
+    """Reset database with new action columns - REMOVE AFTER USE"""
+    try:
+        print("Dropping all tables...")
+        db.drop_all()
+        print("Creating all tables with new schema...")
+        db.create_all()
+        print("Database reset complete with action columns!")
+        return jsonify({"message": "Database reset with action columns successfully!"})
+    except Exception as e:
+        print(f"Error resetting database: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Main application entry point
