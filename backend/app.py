@@ -879,20 +879,33 @@ def import_monsters_endpoint():
     
 @app.route('/api/debug-characters', methods=['GET'])
 def debug_characters():
-    """Debug endpoint to check character table structure"""
+    """Debug endpoint to check character table structure - no auth required"""
     try:
         from sqlalchemy import inspect
         inspector = inspect(db.engine)
+        
+        # Check if character table exists
+        tables = inspector.get_table_names()
+        if 'character' not in tables:
+            return jsonify({
+                "error": "character table does not exist",
+                "available_tables": tables
+            })
+        
         columns = inspector.get_columns('character')
         column_names = [col['name'] for col in columns]
         
-        # Also try to count characters
-        char_count = Character.query.count()
+        # Try to count characters without complex queries
+        try:
+            char_count = db.session.execute(db.text("SELECT COUNT(*) FROM character")).scalar()
+        except Exception as count_error:
+            char_count = f"Error counting: {str(count_error)}"
         
         return jsonify({
             "character_table_columns": column_names,
             "character_count": char_count,
-            "status": "success"
+            "status": "success",
+            "tables": tables
         })
     except Exception as e:
         return jsonify({
