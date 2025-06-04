@@ -561,42 +561,36 @@ const CharacterManager = ({ user }) => {
     );
   };
 
-  // Helper function to render character stats with dice rolling - UPDATED WITH SAFE JSON PARSING
+  // Helper function to render character stats - UPDATED WITH SAFE JSON PARSING
   function renderCharacterStats() {
     if (!selectedCharacter) return null;
     
     return (
       <>
         <div className="stats-grid">
-          <div className="stat-item" onClick={() => handleAbilityRoll('Strength', selectedCharacter.strength || 10)}>
+          <div className="stat-item">
             <span className="stat-label">STR</span>
             <span className="stat-value">{selectedCharacter.strength || 10}</span>
-            <button className="stat-roll-btn">Roll</button>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Dexterity', selectedCharacter.dexterity || 10)}>
+          <div className="stat-item">
             <span className="stat-label">DEX</span>
             <span className="stat-value">{selectedCharacter.dexterity || 10}</span>
-            <button className="stat-roll-btn">Roll</button>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Constitution', selectedCharacter.constitution || 10)}>
+          <div className="stat-item">
             <span className="stat-label">CON</span>
             <span className="stat-value">{selectedCharacter.constitution || 10}</span>
-            <button className="stat-roll-btn">Roll</button>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Intelligence', selectedCharacter.intelligence || 10)}>
+          <div className="stat-item">
             <span className="stat-label">INT</span>
             <span className="stat-value">{selectedCharacter.intelligence || 10}</span>
-            <button className="stat-roll-btn">Roll</button>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Wisdom', selectedCharacter.wisdom || 10)}>
+          <div className="stat-item">
             <span className="stat-label">WIS</span>
             <span className="stat-value">{selectedCharacter.wisdom || 10}</span>
-            <button className="stat-roll-btn">Roll</button>
           </div>
-          <div className="stat-item" onClick={() => handleAbilityRoll('Charisma', selectedCharacter.charisma || 10)}>
+          <div className="stat-item">
             <span className="stat-label">CHA</span>
             <span className="stat-value">{selectedCharacter.charisma || 10}</span>
-            <button className="stat-roll-btn">Roll</button>
           </div>
         </div>
         
@@ -694,12 +688,6 @@ const CharacterManager = ({ user }) => {
                       )}
                     </div>
                   )}
-                  <button 
-                    className="roll-btn"
-                    onClick={() => handleMonsterActionRoll(action)}
-                  >
-                    Roll
-                  </button>
                 </div>
               ))}
             </div>
@@ -715,12 +703,6 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="legendary-action-item">
                   <div className="legendary-action-name">{action.name || 'Unnamed Action'}</div>
                   <div className="legendary-action-description">{action.description || action.desc || 'No description'}</div>
-                  <button 
-                    className="roll-btn"
-                    onClick={() => handleMonsterActionRoll(action)}
-                  >
-                    Roll
-                  </button>
                 </div>
               ))}
             </div>
@@ -754,12 +736,6 @@ const CharacterManager = ({ user }) => {
                     <div key={index} className="action-item">
                       <div className="action-name">{action.name}</div>
                       <div className="action-description">{action.description}</div>
-                      <button 
-                        className="roll-btn"
-                        onClick={() => handleActionRoll(action.name, action.description)}
-                      >
-                        Roll
-                      </button>
                     </div>
                   ))}
                 </div>
