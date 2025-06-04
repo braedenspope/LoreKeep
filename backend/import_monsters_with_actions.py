@@ -77,8 +77,11 @@ def import_enhanced_monsters():
             print(f"❌ Error during import: {str(e)}")
             db.session.rollback()
 
+# Fixed helper functions for import_monsters_with_actions.py
+# Replace the existing functions with these fixed versions
+
 def create_monster_with_actions(data):
-    """Create a monster with full action data"""
+    """Create a monster with full action data - FIXED VERSION"""
     
     # Parse challenge rating
     cr = data.get('challenge_rating', 0)
@@ -110,11 +113,11 @@ def create_monster_with_actions(data):
     special_abilities = extract_actions(data.get('special_abilities', []))
     reactions = extract_actions(data.get('reactions', []))
     
-    # Extract other data
+    # Extract other data - FIXED TO HANDLE COMPLEX STRUCTURES
     skills = extract_skills(data.get('proficiencies', []))
-    damage_resistances = ', '.join(data.get('damage_resistances', []))
-    damage_immunities = ', '.join(data.get('damage_immunities', []))
-    condition_immunities = ', '.join(data.get('condition_immunities', []))
+    damage_resistances = extract_damage_info(data.get('damage_resistances', []))
+    damage_immunities = extract_damage_info(data.get('damage_immunities', []))
+    condition_immunities = extract_condition_immunities(data.get('condition_immunities', []))
     senses = format_senses(data.get('senses', {}))
     languages = data.get('languages', '')
     
@@ -162,7 +165,7 @@ def create_monster_with_actions(data):
     return monster
 
 def update_monster_with_actions(monster, data):
-    """Update an existing monster with action data"""
+    """Update an existing monster with action data - FIXED VERSION"""
     
     # Extract action data
     actions = extract_actions(data.get('actions', []))
@@ -170,11 +173,11 @@ def update_monster_with_actions(monster, data):
     special_abilities = extract_actions(data.get('special_abilities', []))
     reactions = extract_actions(data.get('reactions', []))
     
-    # Extract other data
+    # Extract other data - FIXED
     skills = extract_skills(data.get('proficiencies', []))
-    damage_resistances = ', '.join(data.get('damage_resistances', []))
-    damage_immunities = ', '.join(data.get('damage_immunities', []))
-    condition_immunities = ', '.join(data.get('condition_immunities', []))
+    damage_resistances = extract_damage_info(data.get('damage_resistances', []))
+    damage_immunities = extract_damage_info(data.get('damage_immunities', []))
+    condition_immunities = extract_condition_immunities(data.get('condition_immunities', []))
     senses = format_senses(data.get('senses', {}))
     languages = data.get('languages', '')
     
@@ -192,8 +195,49 @@ def update_monster_with_actions(monster, data):
     monster.senses = senses if senses else None
     monster.languages = languages if languages else None
 
+def extract_damage_info(damage_list):
+    """Extract damage resistance/immunity info - HANDLES COMPLEX STRUCTURES"""
+    if not damage_list:
+        return None
+    
+    damage_types = []
+    for item in damage_list:
+        if isinstance(item, str):
+            damage_types.append(item)
+        elif isinstance(item, dict):
+            # Some damage types are objects with 'name' field
+            if 'name' in item:
+                damage_types.append(item['name'])
+            elif 'type' in item:
+                damage_types.append(item['type'])
+        else:
+            # Convert to string as fallback
+            damage_types.append(str(item))
+    
+    return ', '.join(damage_types) if damage_types else None
+
+def extract_condition_immunities(condition_list):
+    """Extract condition immunities - HANDLES COMPLEX STRUCTURES"""
+    if not condition_list:
+        return None
+    
+    conditions = []
+    for item in condition_list:
+        if isinstance(item, str):
+            conditions.append(item)
+        elif isinstance(item, dict):
+            # Condition immunities might be objects with 'name' field
+            if 'name' in item:
+                conditions.append(item['name'])
+            elif 'index' in item:
+                conditions.append(item['index'])
+        else:
+            conditions.append(str(item))
+    
+    return ', '.join(conditions) if conditions else None
+
 def extract_actions(actions_data):
-    """Extract and format action data"""
+    """Extract and format action data - IMPROVED VERSION"""
     if not actions_data:
         return []
     
@@ -208,29 +252,45 @@ def extract_actions(actions_data):
         if 'attack_bonus' in action:
             action_info['attack_bonus'] = action['attack_bonus']
         
-        # Add damage info if present
-        if 'damage' in action:
-            action_info['damage'] = action['damage']
+        # Add damage info if present - HANDLE COMPLEX DAMAGE STRUCTURES
+        if 'damage' in action and action['damage']:
+            damage_info = []
+            for damage in action['damage']:
+                if isinstance(damage, dict):
+                    damage_text = damage.get('damage_dice', '')
+                    damage_type = damage.get('damage_type', {})
+                    if isinstance(damage_type, dict) and 'name' in damage_type:
+                        damage_text += f" {damage_type['name']}"
+                    damage_info.append(damage_text)
+                else:
+                    damage_info.append(str(damage))
+            action_info['damage'] = damage_info
         
         # Add DC info if present
         if 'dc' in action:
-            action_info['dc'] = action['dc']
+            dc_info = action['dc']
+            if isinstance(dc_info, dict):
+                action_info['dc'] = {
+                    'dc_value': dc_info.get('dc_value', 0),
+                    'dc_type': dc_info.get('dc_type', {}).get('name', '') if isinstance(dc_info.get('dc_type'), dict) else str(dc_info.get('dc_type', ''))
+                }
         
         actions.append(action_info)
     
     return actions
 
 def extract_skills(proficiencies):
-    """Extract skill proficiencies"""
+    """Extract skill proficiencies - IMPROVED VERSION"""
     skills = {}
     for prof in proficiencies:
-        if prof.get('proficiency', {}).get('name', '').startswith('Skill:'):
-            skill_name = prof['proficiency']['name'].replace('Skill: ', '')
+        prof_name = prof.get('proficiency', {})
+        if isinstance(prof_name, dict) and prof_name.get('name', '').startswith('Skill:'):
+            skill_name = prof_name['name'].replace('Skill: ', '')
             skills[skill_name] = prof.get('value', 0)
     return skills
 
 def format_senses(senses_data):
-    """Format senses data into readable string"""
+    """Format senses data into readable string - IMPROVED VERSION"""
     if not senses_data:
         return None
     

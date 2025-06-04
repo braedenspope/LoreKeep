@@ -965,9 +965,9 @@ def reset_database_with_actions():
         print(f"Error resetting database: {e}")
         return jsonify({"error": str(e)}), 500
     
-@app.route('/api/import-batch/<int:start>/<int:end>', methods=['POST'])
-def import_monster_batch(start, end):
-    """Import monsters in batches to avoid timeouts"""
+@app.route('/api/import-batch-fixed/<int:start>/<int:end>', methods=['POST'])
+def import_monster_batch_fixed(start, end):
+    """Import monsters in batches with fixed error handling"""
     try:
         import requests
         import time
@@ -997,22 +997,24 @@ def import_monster_batch(start, end):
                 
                 if existing:
                     update_monster_with_actions(existing, monster_data)
-                    results.append(f"Updated {monster_data['name']}")
+                    results.append(f"✓ Updated {monster_data['name']}")
                 else:
                     monster = create_monster_with_actions(monster_data)
                     db.session.add(monster)
-                    results.append(f"Created {monster_data['name']}")
+                    results.append(f"✓ Created {monster_data['name']}")
                 
                 db.session.commit()
                 time.sleep(0.1)  # Be nice to API
                 
             except Exception as e:
-                results.append(f"Failed {monster_ref['name']}: {str(e)}")
+                results.append(f"✗ Failed {monster_ref['name']}: {str(e)}")
                 db.session.rollback()
         
         return jsonify({
             "results": results,
-            "processed": len(batch)
+            "processed": len(batch),
+            "success_count": len([r for r in results if r.startswith("✓")]),
+            "error_count": len([r for r in results if r.startswith("✗")])
         })
         
     except Exception as e:
