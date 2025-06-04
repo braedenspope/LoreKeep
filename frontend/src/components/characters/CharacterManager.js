@@ -671,23 +671,7 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="action-item">
                   <div className="action-name">{action.name || 'Unnamed Action'}</div>
                   <div className="action-description">{action.description || action.desc || 'No description'}</div>
-                  {(action.attack_bonus || (action.damage && Array.isArray(action.damage) && action.damage.length > 0)) && (
-                    <div className="action-details">
-                      {action.attack_bonus && (
-                        <span className="attack-bonus">+{action.attack_bonus} to hit</span>
-                      )}
-                      {action.damage && Array.isArray(action.damage) && action.damage.length > 0 && (
-                        <span className="damage-info">
-                          {action.damage.map((d, i) => (
-                            <span key={i}>
-                              {d.damage_dice || 'No dice'} {d.damage_type?.name || d.damage_type || ''} damage
-                              {i < action.damage.length - 1 ? ' + ' : ''}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  
                 </div>
               ))}
             </div>
