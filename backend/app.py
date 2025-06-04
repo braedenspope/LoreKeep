@@ -964,6 +964,59 @@ def reset_database_with_actions():
     except Exception as e:
         print(f"Error resetting database: {e}")
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/import-batch/<int:start>/<int:end>', methods=['POST'])
+def import_monster_batch(start, end):
+    """Import monsters in batches to avoid timeouts"""
+    try:
+        import requests
+        import time
+        import json
+        from import_monsters_with_actions import create_monster_with_actions, update_monster_with_actions
+        
+        # Get monster list
+        response = requests.get("https://www.dnd5eapi.co/api/monsters")
+        monster_list = response.json()
+        
+        batch = monster_list['results'][start:end]
+        results = []
+        
+        for monster_ref in batch:
+            try:
+                # Get detailed monster data
+                monster_url = f"https://www.dnd5eapi.co{monster_ref['url']}"
+                monster_response = requests.get(monster_url)
+                monster_data = monster_response.json()
+                
+                # Check if exists
+                existing = Character.query.filter_by(
+                    name=monster_data['name'],
+                    character_type='Monster',
+                    is_official=True
+                ).first()
+                
+                if existing:
+                    update_monster_with_actions(existing, monster_data)
+                    results.append(f"Updated {monster_data['name']}")
+                else:
+                    monster = create_monster_with_actions(monster_data)
+                    db.session.add(monster)
+                    results.append(f"Created {monster_data['name']}")
+                
+                db.session.commit()
+                time.sleep(0.1)  # Be nice to API
+                
+            except Exception as e:
+                results.append(f"Failed {monster_ref['name']}: {str(e)}")
+                db.session.rollback()
+        
+        return jsonify({
+            "results": results,
+            "processed": len(batch)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Main application entry point
 if __name__ == '__main__':
