@@ -594,13 +594,20 @@ def get_characters():
         return jsonify({"error": "Not authenticated"}), 401
     
     try:
-        # Simple query - get user's characters and official monsters
         characters = Character.query.filter(
             db.or_(
                 Character.user_id == user_id,
                 Character.is_official == True
             )
         ).all()
+        
+        def safe_parse_json(json_str):
+            if json_str:
+                try:
+                    return json.loads(json_str)
+                except:
+                    return None
+            return None
         
         result = []
         for char in characters:
@@ -620,7 +627,19 @@ def get_characters():
                 "challenge_rating": char.challenge_rating,
                 "creature_type": char.creature_type,
                 "is_official": char.is_official,
-                "user_id": char.user_id
+                "user_id": char.user_id,
+                
+                # ADD ACTION DATA:
+                "actions": safe_parse_json(char.actions),
+                "legendary_actions": safe_parse_json(char.legendary_actions),
+                "special_abilities": safe_parse_json(char.special_abilities),
+                "reactions": safe_parse_json(char.reactions),
+                "skills": safe_parse_json(char.skills),
+                "damage_resistances": char.damage_resistances,
+                "damage_immunities": char.damage_immunities,
+                "condition_immunities": char.condition_immunities,
+                "senses": char.senses,
+                "languages": char.languages
             })
         
         return jsonify(result)
@@ -628,7 +647,6 @@ def get_characters():
     except Exception as e:
         print(f"Error in get_characters: {e}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/api/characters', methods=['POST'])
 def create_character():
@@ -689,6 +707,15 @@ def get_character(id):
     if not character:
         return jsonify({"error": "Character not found"}), 404
     
+    # Helper function to safely parse JSON
+    def safe_parse_json(json_str):
+        if json_str:
+            try:
+                return json.loads(json_str)
+            except:
+                return None
+        return None
+    
     return jsonify({
         "id": character.id,
         "name": character.name,
@@ -705,7 +732,19 @@ def get_character(id):
         "armor_class": character.armor_class or 10,
         "hit_points": character.hit_points or 1,
         "creature_type": character.creature_type,
-        "challenge_rating": character.challenge_rating
+        "challenge_rating": character.challenge_rating,
+        
+        # ADD THESE ACTION FIELDS:
+        "actions": safe_parse_json(character.actions),
+        "legendary_actions": safe_parse_json(character.legendary_actions),
+        "special_abilities": safe_parse_json(character.special_abilities),
+        "reactions": safe_parse_json(character.reactions),
+        "skills": safe_parse_json(character.skills),
+        "damage_resistances": character.damage_resistances,
+        "damage_immunities": character.damage_immunities,
+        "condition_immunities": character.condition_immunities,
+        "senses": character.senses,
+        "languages": character.languages
     })
 
 @app.route('/api/characters/<int:id>', methods=['PUT'])
