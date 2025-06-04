@@ -876,6 +876,29 @@ def import_monsters_endpoint():
         return jsonify({"message": "Monsters imported successfully!"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/debug-characters', methods=['GET'])
+def debug_characters():
+    """Debug endpoint to check character table structure"""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        columns = inspector.get_columns('character')
+        column_names = [col['name'] for col in columns]
+        
+        # Also try to count characters
+        char_count = Character.query.count()
+        
+        return jsonify({
+            "character_table_columns": column_names,
+            "character_count": char_count,
+            "status": "success"
+        })
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "status": "failed"
+        })
 
 # Main application entry point
 if __name__ == '__main__':
