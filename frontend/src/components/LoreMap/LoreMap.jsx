@@ -1,4 +1,4 @@
-// LoreMap.jsx - Complete version with infinite canvas and panning
+// LoreMap.jsx - Fixed version with proper coordinate transformations
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
@@ -8,18 +8,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [events, setEvents] = useState(initialEvents || []);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [newEventData, setNewEventData] = useState({
-    title: '',
-    description: '',
-    location: '',
-    isPartyLocation: false,
-  });
   const [connections, setConnections] = useState(initialConnections || []);
   
   // Canvas panning and viewport state
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   
   // Event dragging state
@@ -43,36 +36,44 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
 
   // Convert screen coordinates to world coordinates
   const screenToWorld = useCallback((screenX, screenY) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: screenX, y: screenY };
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return { x: screenX, y: screenY };
     
-    const canvasX = screenX - rect.left;
-    const canvasY = screenY - rect.top;
+    // Get position relative to the canvas container
+    const relativeX = screenX - containerRect.left;
+    const relativeY = screenY - containerRect.top;
     
+    // Convert to world coordinates
     return {
-      x: (canvasX - viewport.x) / viewport.scale,
-      y: (canvasY - viewport.y) / viewport.scale
+      x: (relativeX - viewport.x) / viewport.scale,
+      y: (relativeY - viewport.y) / viewport.scale
     };
   }, [viewport]);
 
   // Convert world coordinates to screen coordinates
   const worldToScreen = useCallback((worldX, worldY) => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return { x: worldX, y: worldY };
+    
     return {
-      x: worldX * viewport.scale + viewport.x,
-      y: worldY * viewport.scale + viewport.y
+      x: worldX * viewport.scale + viewport.x + containerRect.left,
+      y: worldY * viewport.scale + viewport.y + containerRect.top
     };
   }, [viewport]);
 
   // Get the center of the current viewport in world coordinates
   const getViewportCenter = useCallback(() => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return { x: 0, y: 0 };
     
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const centerX = containerRect.width / 2;
+    const centerY = containerRect.height / 2;
     
-    return screenToWorld(centerX + rect.left, centerY + rect.top);
-  }, [screenToWorld]);
+    return {
+      x: (centerX - viewport.x) / viewport.scale,
+      y: (centerY - viewport.y) / viewport.scale
+    };
+  }, [viewport]);
 
   // Update parent component when data changes
   useEffect(() => {
@@ -152,7 +153,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     
     if (e.button === 2) { // Right mouse button - start panning
       setIsPanning(true);
-      setPanStart({ x: e.clientX, y: e.clientY });
       setLastPanPoint({ x: e.clientX, y: e.clientY });
       return;
     }
@@ -167,14 +167,15 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         setIsDragging(true);
         setDraggedEvent(event);
         
-        const rect = target.getBoundingClientRect();
+        // Calculate offset from event position to mouse
+        const worldMouse = screenToWorld(e.clientX, e.clientY);
         setDragOffset({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
+          x: worldMouse.x - event.position.x,
+          y: worldMouse.y - event.position.y,
         });
       }
     }
-  }, [events, isCreatingConnection]);
+  }, [events, isCreatingConnection, screenToWorld]);
 
   // Handle mouse move for panning and dragging
   const handleMouseMove = useCallback((e) => {
@@ -190,11 +191,17 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     } else if (isDragging && draggedEvent) {
-      const worldPos = screenToWorld(e.clientX - dragOffset.x, e.clientY - dragOffset.y);
+      const worldPos = screenToWorld(e.clientX, e.clientY);
       
       setEvents(events.map(evt => 
         evt.id === draggedEvent.id 
-          ? { ...evt, position: { x: worldPos.x, y: worldPos.y } } 
+          ? { 
+              ...evt, 
+              position: { 
+                x: worldPos.x - dragOffset.x, 
+                y: worldPos.y - dragOffset.y 
+              } 
+            } 
           : evt
       ));
     }
@@ -211,11 +218,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const handleWheel = useCallback((e) => {
     e.preventDefault();
     
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
     
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const mouseX = e.clientX - containerRect.left;
+    const mouseY = e.clientY - containerRect.top;
     
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.max(0.1, Math.min(3, viewport.scale * scaleFactor));
@@ -267,28 +274,30 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       return;
     }
     
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+    
     // Calculate bounds of all events
     const positions = events.map(e => e.position);
     const minX = Math.min(...positions.map(p => p.x)) - 100;
-    const maxX = Math.max(...positions.map(p => p.x)) + 250;
+    const maxX = Math.max(...positions.map(p => p.x)) + 250; // Account for event width
     const minY = Math.min(...positions.map(p => p.y)) - 100;
     const maxY = Math.max(...positions.map(p => p.y)) + 100;
     
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    const width = maxX - minX;
-    const height = maxY - minY;
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
     
-    const scaleX = rect.width / width;
-    const scaleY = rect.height / height;
-    const scale = Math.min(scaleX, scaleY, 1) * 0.8; // 80% of max scale for padding
+    // Calculate scale to fit all events with padding
+    const scaleX = (containerRect.width * 0.8) / contentWidth;
+    const scaleY = (containerRect.height * 0.8) / contentHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't scale larger than 1:1
     
+    // Center the content
     setViewport({
-      x: rect.width / 2 - centerX * scale,
-      y: rect.height / 2 - centerY * scale,
+      x: containerRect.width / 2 - centerX * scale,
+      y: containerRect.height / 2 - centerY * scale,
       scale: scale
     });
   };
@@ -389,7 +398,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
 
   // Canvas click handler
   const handleCanvasClick = (e) => {
-    if (e.target === canvasRef.current) {
+    if (e.target === canvasRef.current || e.target.closest('.lore-map-canvas')) {
       if (isCreatingConnection) {
         setIsCreatingConnection(false);
         setConnectionStart(null);
@@ -607,22 +616,28 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
 
   // Render connections between events
   const renderConnections = () => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return null;
+
     return connections.map((connection, index) => {
       const fromEvent = events.find(e => e.id === connection.from);
       const toEvent = events.find(e => e.id === connection.to);
       
       if (!fromEvent || !toEvent) return null;
       
-      const fromPos = worldToScreen(fromEvent.position.x + 75, fromEvent.position.y + 25);
-      const toPos = worldToScreen(toEvent.position.x + 75, toEvent.position.y + 25);
+      // Calculate screen positions for connection endpoints
+      const fromScreenX = (fromEvent.position.x + 75) * viewport.scale + viewport.x;
+      const fromScreenY = (fromEvent.position.y + 25) * viewport.scale + viewport.y;
+      const toScreenX = (toEvent.position.x + 75) * viewport.scale + viewport.x;
+      const toScreenY = (toEvent.position.y + 25) * viewport.scale + viewport.y;
       
       return (
         <line
           key={index}
-          x1={fromPos.x}
-          y1={fromPos.y}
-          x2={toPos.x}
-          y2={toPos.y}
+          x1={fromScreenX}
+          y1={fromScreenY}
+          x2={toScreenX}
+          y2={toScreenY}
           stroke={connectionStart && connectionStart.id === fromEvent.id ? "#3498db" : "#8b4513"}
           strokeWidth="2"
           markerEnd="url(#arrowhead)"
@@ -720,44 +735,44 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           onMouseDown={handleMouseDown}
           onWheel={handleWheel}
           onContextMenu={(e) => e.preventDefault()}
+          onClick={handleCanvasClick}
         >
+          {/* SVG for connections - positioned relative to container */}
+          <svg 
+            className="connections-svg"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 5
+            }}
+          >
+            <defs>
+              <marker
+                id="arrowhead"
+                markerWidth="10"
+                markerHeight="7"
+                refX="9"
+                refY="3.5"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3.5, 0 7" fill="#8b4513" />
+              </marker>
+            </defs>
+            {renderConnections()}
+          </svg>
+          
           <div 
             ref={canvasRef}
             className="lore-map-canvas infinite"
-            onClick={handleCanvasClick}
             style={{
               transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`,
               transformOrigin: '0 0'
             }}
           >
-            {/* SVG for connections */}
-            <svg 
-              className="connections-svg"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'none',
-                zIndex: 1
-              }}
-            >
-              <defs>
-                <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="7"
-                  refX="9"
-                  refY="3.5"
-                  orient="auto"
-                >
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#8b4513" />
-                </marker>
-              </defs>
-              {renderConnections()}
-            </svg>
-            
             {/* Event nodes */}
             {events.map(event => {
               const isAccessible = checkEventConditions(event);
