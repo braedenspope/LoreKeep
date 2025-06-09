@@ -355,20 +355,25 @@ const CharacterManager = ({ user }) => {
     setIsEditing(true);
   };
 
-  // Filter characters based on search term and type filter
-  const filteredCharacters = characters.filter(char => {
-    // Filter by character type
-    if (filter !== 'all' && char.character_type !== filter) {
-      return false;
-    }
-    
-    // Filter by search term
-    if (searchTerm && !char.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    
-    return true;
-  });
+  // Filter and sort characters alphabetically
+  const filteredCharacters = characters
+    .filter(char => {
+      // Filter by character type
+      if (filter !== 'all' && char.character_type !== filter) {
+        return false;
+      }
+      
+      // Filter by search term
+      if (searchTerm && !char.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort alphabetically by name (case-insensitive)
+      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    });
 
   // Render the character creation/editing form
   const renderForm = () => {
