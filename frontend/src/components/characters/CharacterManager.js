@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './CharacterManager.css';
 import { rollAbilityCheck, rollFromNotation } from '../../utils/diceUtils';
 import DiceRollModal from '../common/DiceRollModal';
+import { formatChallengeRating, sortByChallengeRating } from '../../utils/challengeRatingUtils';
 import config from '../../config';
 
 const CharacterManager = ({ user }) => {

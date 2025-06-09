@@ -1,5 +1,5 @@
-// LoreMap.jsx - Complete updated version with battle maps and character management
-import React, { useState, useEffect, useRef } from 'react';
+// LoreMap.jsx - Complete version with infinite canvas and panning
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
 import config from '../../config';
@@ -8,8 +8,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [events, setEvents] = useState(initialEvents || []);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
-  const [newEventPosition, setNewEventPosition] = useState({ x: 0, y: 0 });
   const [newEventData, setNewEventData] = useState({
     title: '',
     description: '',
@@ -17,11 +15,23 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     isPartyLocation: false,
   });
   const [connections, setConnections] = useState(initialConnections || []);
+  
+  // Canvas panning and viewport state
+  const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  
+  // Event dragging state
   const [isDragging, setIsDragging] = useState(false);
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  // Connection creation state
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
+  
+  // Character and battle map state
   const [characters, setCharacters] = useState([]);
   const [eventCharacters, setEventCharacters] = useState([]);
   const [eventStates, setEventStates] = useState({});
@@ -29,6 +39,40 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [battleMapPreview, setBattleMapPreview] = useState(null);
   
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Convert screen coordinates to world coordinates
+  const screenToWorld = useCallback((screenX, screenY) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: screenX, y: screenY };
+    
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
+    
+    return {
+      x: (canvasX - viewport.x) / viewport.scale,
+      y: (canvasY - viewport.y) / viewport.scale
+    };
+  }, [viewport]);
+
+  // Convert world coordinates to screen coordinates
+  const worldToScreen = useCallback((worldX, worldY) => {
+    return {
+      x: worldX * viewport.scale + viewport.x,
+      y: worldY * viewport.scale + viewport.y
+    };
+  }, [viewport]);
+
+  // Get the center of the current viewport in world coordinates
+  const getViewportCenter = useCallback(() => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    return screenToWorld(centerX + rect.left, centerY + rect.top);
+  }, [screenToWorld]);
 
   // Update parent component when data changes
   useEffect(() => {
@@ -93,7 +137,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       
       fetchEventCharacters();
       
-      // Set battle map preview if event has one
       if (editingEvent.battle_map_url) {
         setBattleMapPreview(`${config.apiUrl}${editingEvent.battle_map_url}`);
       }
@@ -103,17 +146,161 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }
   }, [editingEvent]);
 
+  // Handle mouse down for panning and dragging
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    
+    if (e.button === 2) { // Right mouse button - start panning
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
+    // Left mouse button - check if clicking on an event for dragging
+    const target = e.target.closest('.event-node');
+    if (target && !isCreatingConnection) {
+      const eventId = parseInt(target.dataset.eventId);
+      const event = events.find(e => e.id === eventId);
+      
+      if (event) {
+        setIsDragging(true);
+        setDraggedEvent(event);
+        
+        const rect = target.getBoundingClientRect();
+        setDragOffset({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
+    }
+  }, [events, isCreatingConnection]);
+
+  // Handle mouse move for panning and dragging
+  const handleMouseMove = useCallback((e) => {
+    if (isPanning) {
+      const deltaX = e.clientX - lastPanPoint.x;
+      const deltaY = e.clientY - lastPanPoint.y;
+      
+      setViewport(prev => ({
+        ...prev,
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+    } else if (isDragging && draggedEvent) {
+      const worldPos = screenToWorld(e.clientX - dragOffset.x, e.clientY - dragOffset.y);
+      
+      setEvents(events.map(evt => 
+        evt.id === draggedEvent.id 
+          ? { ...evt, position: { x: worldPos.x, y: worldPos.y } } 
+          : evt
+      ));
+    }
+  }, [isPanning, lastPanPoint, isDragging, draggedEvent, dragOffset, screenToWorld, events]);
+
+  // Handle mouse up to stop panning and dragging
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+    setIsDragging(false);
+    setDraggedEvent(null);
+  }, []);
+
+  // Handle wheel for zooming
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(0.1, Math.min(3, viewport.scale * scaleFactor));
+    
+    // Zoom towards mouse position
+    const newX = mouseX - (mouseX - viewport.x) * (newScale / viewport.scale);
+    const newY = mouseY - (mouseY - viewport.y) * (newScale / viewport.scale);
+    
+    setViewport({
+      x: newX,
+      y: newY,
+      scale: newScale
+    });
+  }, [viewport]);
+
+  // Attach global mouse events
+  useEffect(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  // Create a new event at viewport center
+  const handleCreateEventAtCenter = () => {
+    const centerPos = getViewportCenter();
+    
+    const newEvent = {
+      id: Date.now(),
+      title: 'New Event',
+      description: '',
+      location: '',
+      isPartyLocation: false,
+      position: centerPos,
+      conditions: []
+    };
+    
+    setEvents([...events, newEvent]);
+    setSelectedEvent(newEvent);
+  };
+
+  // Reset viewport to show all events
+  const handleResetView = () => {
+    if (events.length === 0) {
+      setViewport({ x: 0, y: 0, scale: 1 });
+      return;
+    }
+    
+    // Calculate bounds of all events
+    const positions = events.map(e => e.position);
+    const minX = Math.min(...positions.map(p => p.x)) - 100;
+    const maxX = Math.max(...positions.map(p => p.x)) + 250;
+    const minY = Math.min(...positions.map(p => p.y)) - 100;
+    const maxY = Math.max(...positions.map(p => p.y)) + 100;
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const width = maxX - minX;
+    const height = maxY - minY;
+    
+    const scaleX = rect.width / width;
+    const scaleY = rect.height / height;
+    const scale = Math.min(scaleX, scaleY, 1) * 0.8; // 80% of max scale for padding
+    
+    setViewport({
+      x: rect.width / 2 - centerX * scale,
+      y: rect.height / 2 - centerY * scale,
+      scale: scale
+    });
+  };
+
   // Check if event conditions are met
   const checkEventConditions = (event) => {
     let conditions = [];
     
-    // Handle different types of conditions data
     if (event.conditions) {
       if (Array.isArray(event.conditions)) {
-        // Already an array
         conditions = event.conditions;
       } else if (typeof event.conditions === 'string') {
-        // It's a JSON string, parse it
         try {
           conditions = JSON.parse(event.conditions);
         } catch (e) {
@@ -121,7 +308,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           conditions = [];
         }
       } else if (typeof event.conditions === 'object') {
-        // It's already an object but not an array
         conditions = [event.conditions];
       }
     }
@@ -135,19 +321,15 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         case 'event_completed':
           const isCompleted = eventStates[`event_${condition.target}_completed`] || false;
           return condition.required ? isCompleted : !isCompleted;
-          
         case 'character_freed':
           const isFreed = eventStates[`character_${condition.target}_freed`] || false;
           return condition.required ? isFreed : !isFreed;
-          
         case 'character_alive':
           const isAlive = eventStates[`character_${condition.target}_alive`] !== false;
           return condition.required ? isAlive : !isAlive;
-          
         case 'custom':
           const customState = eventStates[`custom_${condition.id}`] || false;
           return condition.required ? customState : !customState;
-          
         default:
           return true;
       }
@@ -163,11 +345,10 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }));
   };
 
-  // Handle single click - just select/highlight
+  // Handle event click
   const handleEventClick = (event, e) => {
     e.stopPropagation();
     
-    // If in connection creation mode, complete the connection
     if (isCreatingConnection && connectionStart && connectionStart.id !== event.id) {
       const newConnection = {
         id: Date.now(),
@@ -185,13 +366,12 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setSelectedEvent(event);
   };
 
-  // Handle double click - open edit modal
+  // Handle event double click
   const handleEventDoubleClick = (event, e) => {
     e.stopPropagation();
     
-    if (isCreatingConnection) return; // Don't open edit in connection mode
+    if (isCreatingConnection) return;
     
-    // Parse the event data properly
     const eventToEdit = {
       ...event,
       conditions: event.conditions || []
@@ -200,11 +380,23 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setEditingEvent(eventToEdit);
     setBattleMapFile(null);
     
-    // Set battle map preview if event has one
     if (event.battle_map_url) {
       setBattleMapPreview(`${config.apiUrl}${event.battle_map_url}`);
     } else {
       setBattleMapPreview(null);
+    }
+  };
+
+  // Canvas click handler
+  const handleCanvasClick = (e) => {
+    if (e.target === canvasRef.current) {
+      if (isCreatingConnection) {
+        setIsCreatingConnection(false);
+        setConnectionStart(null);
+        return;
+      }
+      
+      setSelectedEvent(null);
     }
   };
 
@@ -214,7 +406,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     if (file) {
       setBattleMapFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setBattleMapPreview(e.target.result);
@@ -244,7 +435,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         console.error('Failed to remove battle map:', err);
       }
     } else {
-      // For new events, just clear locally
       setBattleMapFile(null);
       setBattleMapPreview(null);
       if (editingEvent) {
@@ -288,7 +478,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           setEventCharacters([...eventCharacters, characterId]);
         }
       } else {
-        // For new events, just add to local state
         setEventCharacters([...eventCharacters, characterId]);
       }
     } catch (err) {
@@ -311,7 +500,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           setEventCharacters(eventCharacters.filter(id => id !== characterId));
         }
       } else {
-        // For new events, just remove from local state
         setEventCharacters(eventCharacters.filter(id => id !== characterId));
       }
     } catch (err) {
@@ -326,14 +514,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     try {
       let updatedEvent = { ...editingEvent };
       
-      // Only process if this is an existing event (not a new temporary one)
       if (editingEvent.id && editingEvent.id <= 1000000) {
-        // Handle battle map upload if there's a new file
         if (battleMapFile) {
           const formData = new FormData();
           formData.append('battle_map', battleMapFile);
           
-          // Upload the battle map
           const uploadResponse = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/battle-map`, {
             method: 'POST',
             credentials: 'include',
@@ -348,7 +533,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           }
         }
         
-        // Update the event details in the backend
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}`, {
           method: 'PUT',
           headers: {
@@ -375,25 +559,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           ...updatedEvent,
           battle_map_url: backendEvent.battle_map_url
         };
-        
-        console.log('Event updated successfully, characters attached:', eventCharacters.length);
-        
-      } else {
-        // For new events that haven't been saved to backend yet
-        console.log('Saving new event with characters:', eventCharacters.length);
       }
       
-      // Update the event in the events array
       setEvents(events.map(evt => 
         evt.id === editingEvent.id ? updatedEvent : evt
       ));
       
-      // If it's a selected event, update that too
       if (selectedEvent && selectedEvent.id === editingEvent.id) {
         setSelectedEvent(updatedEvent);
       }
       
-      // Clear editing state
       setEditingEvent(null);
       setBattleMapFile(null);
       setBattleMapPreview(null);
@@ -414,15 +589,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setEventCharacters([]);
   };
 
-  // Start creating a connection
-  const handleAddConnection = () => {
-    if (!selectedEvent) return;
-    
-    setIsCreatingConnection(true);
-    setConnectionStart(selectedEvent);
-    setSelectedEvent(null);
-  };
-
   // Delete an event
   const handleDeleteEvent = () => {
     if (!selectedEvent) return;
@@ -431,10 +597,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       return;
     }
     
-    // Remove the event
     setEvents(events.filter(e => e.id !== selectedEvent.id));
-    
-    // Remove connections to/from this event
     setConnections(connections.filter(
       c => c.from !== selectedEvent.id && c.to !== selectedEvent.id
     ));
@@ -442,99 +605,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setSelectedEvent(null);
   };
 
-  // Canvas right-click for new event
-  const handleCanvasContextMenu = (e) => {
-    e.preventDefault();
-    
-    if (isCreatingConnection) {
-      setIsCreatingConnection(false);
-      setConnectionStart(null);
-      return;
-    }
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setNewEventPosition({ x, y });
-    setIsCreatingEvent(true);
-  };
-
-  // Handle event drag start
-  const handleEventDragStart = (e, event) => {
-    e.stopPropagation();
-    
-    if (isCreatingConnection) return;
-    
-    setIsDragging(true);
-    setDraggedEvent(event);
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
-
-  // Handle mouse move for dragging
-  const handleMouseMove = (e) => {
-    if (isDragging && draggedEvent) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left - dragOffset.x;
-      const y = e.clientY - rect.top - dragOffset.y;
-      
-      setEvents(events.map(evt => 
-        evt.id === draggedEvent.id 
-          ? { ...evt, position: { x, y } } 
-          : evt
-      ));
-    }
-  };
-
-  // Handle mouse up to stop dragging
-  const handleMouseUp = () => {
-    if (isDragging) {
-      setIsDragging(false);
-      setDraggedEvent(null);
-    }
-  };
-
-  // Create a new event
-  const handleCreateEvent = () => {
-    const newEvent = {
-      id: Date.now(),
-      ...newEventData,
-      position: newEventPosition,
-      conditions: []
-    };
-    
-    setEvents([...events, newEvent]);
-    setIsCreatingEvent(false);
-    setNewEventData({
-      title: '',
-      description: '',
-      location: '',
-      isPartyLocation: false,
-    });
-  };
-
-  // Handle canvas click to deselect 
-  const handleCanvasClick = () => {
-    if (isCreatingConnection) {
-      setIsCreatingConnection(false);
-      setConnectionStart(null);
-      return;
-    }
-    
-    setSelectedEvent(null);
-  };
-
-  // Cancel event creation
-  const handleCancelCreate = () => {
-    setIsCreatingEvent(false);
-  };
-
-  // Draw connections between events
+  // Render connections between events
   const renderConnections = () => {
     return connections.map((connection, index) => {
       const fromEvent = events.find(e => e.id === connection.from);
@@ -542,13 +613,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       
       if (!fromEvent || !toEvent) return null;
       
+      const fromPos = worldToScreen(fromEvent.position.x + 75, fromEvent.position.y + 25);
+      const toPos = worldToScreen(toEvent.position.x + 75, toEvent.position.y + 25);
+      
       return (
         <line
           key={index}
-          x1={fromEvent.position.x + 75}
-          y1={fromEvent.position.y + 25}
-          x2={toEvent.position.x + 75}
-          y2={toEvent.position.y + 25}
+          x1={fromPos.x}
+          y1={fromPos.y}
+          x2={toPos.x}
+          y2={toPos.y}
           stroke={connectionStart && connectionStart.id === fromEvent.id ? "#3498db" : "#8b4513"}
           strokeWidth="2"
           markerEnd="url(#arrowhead)"
@@ -557,111 +631,191 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-  // Get character names for display
-  const getCharacterNames = (characterIds) => {
-    return characterIds
-      .map(id => characters.find(c => c.id === id)?.name)
-      .filter(name => name)
-      .join(', ');
-  };
-
   return (
     <div className="lore-map-container">
-      <div 
-        className="lore-map-canvas" 
-        ref={canvasRef}
-        onContextMenu={handleCanvasContextMenu}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onClick={handleCanvasClick}
-      >
-        <svg width="100%" height="100%">
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#8b4513" />
-            </marker>
-          </defs>
-          {renderConnections()}
-        </svg>
-        
-        {events.map(event => {
-          const isAccessible = checkEventConditions(event);
-          const isCompleted = eventStates[`event_${event.id}_completed`] || false;
+      {/* Left sidebar with controls */}
+      <div className="lore-map-sidebar">
+        <div className="sidebar-controls">
+          <h3>Map Controls</h3>
           
-          return (
-            <div
-              key={event.id}
-              className={`event-node 
-                ${event.isPartyLocation ? 'party-location' : ''} 
-                ${selectedEvent?.id === event.id ? 'selected' : ''} 
-                ${connectionStart?.id === event.id ? 'connection-source' : ''}
-                ${!isAccessible ? 'conditional-locked' : ''}
-                ${isCompleted ? 'completed' : ''}
-              `}
-              style={{
-                left: `${event.position.x}px`,
-                top: `${event.position.y}px`,
-              }}
-              onClick={(e) => handleEventClick(event, e)}
-              onDoubleClick={(e) => handleEventDoubleClick(event, e)}
-              onMouseDown={(e) => handleEventDragStart(e, event)}
-            >
-              <h3>{event.title}</h3>
-              <div className="event-location">{event.location}</div>
-              
-              {/* Show condition indicators */}
-              {!isAccessible && (
-                <div className="condition-indicator locked">🔒</div>
-              )}
-              {isCompleted && (
-                <div className="condition-indicator completed">✓</div>
-              )}
-              {event.conditions && event.conditions.length > 0 && (
-                <div className="condition-indicator has-conditions">⚙️</div>
-              )}
-              {event.battle_map_url && (
-                <div className="condition-indicator has-map">🗺️</div>
-              )}
-            </div>
-          );
-        })}
-        
-        {isCreatingConnection && (
-          <div className="connection-help-text">
-            Click on another event to create a connection, or right-click to cancel.
-          </div>
-        )}
-      </div>
-      
-      {/* Simple selection panel - only shows when event is selected but not editing */}
-      {selectedEvent && !editingEvent && (
-        <div className="event-selection-panel">
-          <h3>{selectedEvent.title}</h3>
-          <p>{selectedEvent.location}</p>
-          <div className="selection-actions">
-            <button onClick={() => handleEventDoubleClick(selectedEvent, { stopPropagation: () => {} })}>
-              Edit Event
-            </button>
-            <button onClick={handleAddConnection}>Add Connection</button>
-            <button onClick={handleDeleteEvent} className="delete-button">
-              Delete Event
-            </button>
-            <button onClick={() => toggleEventCompleted(selectedEvent.id)}>
-              {eventStates[`event_${selectedEvent.id}_completed`] ? 'Mark Incomplete' : 'Mark Complete'}
-            </button>
+          <button 
+            className="control-btn primary"
+            onClick={handleCreateEventAtCenter}
+            title="Create new event at center of view"
+          >
+            📝 New Event
+          </button>
+          
+          <button 
+            className="control-btn secondary"
+            onClick={handleResetView}
+            title="Reset view to show all events"
+          >
+            🔍 Fit All
+          </button>
+          
+          <button 
+            className="control-btn secondary"
+            onClick={() => setViewport({ x: 0, y: 0, scale: 1 })}
+            title="Reset to origin"
+          >
+            🏠 Reset View
+          </button>
+          
+          {selectedEvent && (
+            <>
+              <hr />
+              <div className="selected-event-controls">
+                <h4>Selected Event</h4>
+                <p><strong>{selectedEvent.title}</strong></p>
+                <button 
+                  className="control-btn primary"
+                  onClick={() => handleEventDoubleClick(selectedEvent, { stopPropagation: () => {} })}
+                >
+                  ✏️ Edit
+                </button>
+                <button 
+                  className="control-btn secondary"
+                  onClick={() => {
+                    if (!selectedEvent) return;
+                    setIsCreatingConnection(true);
+                    setConnectionStart(selectedEvent);
+                    setSelectedEvent(null);
+                  }}
+                >
+                  🔗 Connect
+                </button>
+                <button 
+                  className="control-btn secondary"
+                  onClick={handleDeleteEvent}
+                >
+                  🗑️ Delete
+                </button>
+                <button 
+                  className="control-btn secondary"
+                  onClick={() => toggleEventCompleted(selectedEvent.id)}
+                >
+                  {eventStates[`event_${selectedEvent.id}_completed`] ? '☑️ Complete' : '⬜ Incomplete'}
+                </button>
+              </div>
+            </>
+          )}
+          
+          <hr />
+          <div className="viewport-info">
+            <h4>Viewport Info</h4>
+            <p>Scale: {(viewport.scale * 100).toFixed(0)}%</p>
+            <p>Position: ({Math.round(viewport.x)}, {Math.round(viewport.y)})</p>
+            <small>Right-click and drag to pan</small>
+            <small>Mouse wheel to zoom</small>
           </div>
         </div>
-      )}
+      </div>
       
-                {/* Event editing modal */}
+      {/* Main canvas area */}
+      <div className="lore-map-main">
+        <div 
+          ref={containerRef}
+          className="lore-map-canvas-container"
+          onMouseDown={handleMouseDown}
+          onWheel={handleWheel}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div 
+            ref={canvasRef}
+            className="lore-map-canvas infinite"
+            onClick={handleCanvasClick}
+            style={{
+              transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`,
+              transformOrigin: '0 0'
+            }}
+          >
+            {/* SVG for connections */}
+            <svg 
+              className="connections-svg"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 1
+              }}
+            >
+              <defs>
+                <marker
+                  id="arrowhead"
+                  markerWidth="10"
+                  markerHeight="7"
+                  refX="9"
+                  refY="3.5"
+                  orient="auto"
+                >
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#8b4513" />
+                </marker>
+              </defs>
+              {renderConnections()}
+            </svg>
+            
+            {/* Event nodes */}
+            {events.map(event => {
+              const isAccessible = checkEventConditions(event);
+              const isCompleted = eventStates[`event_${event.id}_completed`] || false;
+              
+              return (
+                <div
+                  key={event.id}
+                  data-event-id={event.id}
+                  className={`event-node 
+                    ${event.isPartyLocation ? 'party-location' : ''} 
+                    ${selectedEvent?.id === event.id ? 'selected' : ''} 
+                    ${connectionStart?.id === event.id ? 'connection-source' : ''}
+                    ${!isAccessible ? 'conditional-locked' : ''}
+                    ${isCompleted ? 'completed' : ''}
+                  `}
+                  style={{
+                    position: 'absolute',
+                    left: `${event.position.x}px`,
+                    top: `${event.position.y}px`,
+                    zIndex: 10
+                  }}
+                  onClick={(e) => handleEventClick(event, e)}
+                  onDoubleClick={(e) => handleEventDoubleClick(event, e)}
+                >
+                  <h3>{event.title}</h3>
+                  <div className="event-location">{event.location}</div>
+                  
+                  {/* Condition indicators */}
+                  {!isAccessible && (
+                    <div className="condition-indicator locked">🔒</div>
+                  )}
+                  {isCompleted && (
+                    <div className="condition-indicator completed">✓</div>
+                  )}
+                  {event.conditions && event.conditions.length > 0 && (
+                    <div className="condition-indicator has-conditions">⚙️</div>
+                  )}
+                  {event.battle_map_url && (
+                    <div className="condition-indicator has-map">🗺️</div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Grid background */}
+            <div className="grid-background" />
+          </div>
+          
+          {isCreatingConnection && (
+            <div className="connection-help-text">
+              Click on another event to create a connection, or click elsewhere to cancel.
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Event editing modal */}
       {editingEvent && (
         <div className="event-edit-modal-overlay">
           <div className="event-edit-modal">
@@ -729,7 +883,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       value="" 
                       onChange={(e) => {
                         if (e.target.value) {
-                          console.log('Adding character:', e.target.value);
                           handleAddCharacterToEvent(parseInt(e.target.value, 10));
                         }
                       }}
@@ -750,10 +903,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       <ul className="character-name-list">
                         {eventCharacters.map(charId => {
                           const character = characters.find(c => c.id === charId);
-                          if (!character) {
-                            console.log('Character not found for ID:', charId);
-                            return null;
-                          }
+                          if (!character) return null;
                           
                           return (
                             <li key={charId} className="character-list-item">
@@ -761,10 +911,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                               <span className="character-type">({character.character_type})</span>
                               <button 
                                 className="remove-character-btn"
-                                onClick={() => {
-                                  console.log('Removing character:', charId);
-                                  handleRemoveCharacterFromEvent(charId);
-                                }}
+                                onClick={() => handleRemoveCharacterFromEvent(charId)}
                                 title="Remove character"
                               >
                                 ×
@@ -774,13 +921,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                         })}
                       </ul>
                     )}
-                  </div>
-                  
-                  {/* Debug info */}
-                  <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-                    Debug: {eventCharacters.length} characters attached. 
-                    Event ID: {editingEvent.id}. 
-                    Characters: [{eventCharacters.join(', ')}]
                   </div>
                 </div>
               </div>
@@ -813,12 +953,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       </button>
                     </div>
                   )}
-                  
-                  {/* Debug info */}
-                  <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-                    Debug: Battle map URL: {editingEvent.battle_map_url || 'None'}
-                    {battleMapFile && <div>New file selected: {battleMapFile.name}</div>}
-                  </div>
                 </div>
                 
                 {/* Event Conditions */}
@@ -835,50 +969,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               <button onClick={handleSaveEvent} className="save-btn">Save Changes</button>
               <button onClick={handleCancelEdit} className="cancel-btn">Cancel</button>
             </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Event creation modal */}
-      {isCreatingEvent && (
-        <div className="create-event-modal">
-          <h3>Create New Event</h3>
-          <div className="form-group">
-            <label>Title:</label>
-            <input 
-              type="text" 
-              value={newEventData.title} 
-              onChange={(e) => setNewEventData({...newEventData, title: e.target.value})}
-            />
-          </div>
-          <div className="form-group">
-            <label>Location:</label>
-            <input 
-              type="text" 
-              value={newEventData.location} 
-              onChange={(e) => setNewEventData({...newEventData, location: e.target.value})}
-            />
-          </div>
-          <div className="form-group">
-            <label>Description:</label>
-            <textarea 
-              value={newEventData.description} 
-              onChange={(e) => setNewEventData({...newEventData, description: e.target.value})}
-            />
-          </div>
-          <div className="form-group">
-            <label>
-              <input 
-                type="checkbox" 
-                checked={newEventData.isPartyLocation} 
-                onChange={(e) => setNewEventData({...newEventData, isPartyLocation: e.target.checked})}
-              />
-              Party is here
-            </label>
-          </div>
-          <div className="modal-actions">
-            <button onClick={handleCreateEvent}>Create</button>
-            <button onClick={handleCancelCreate}>Cancel</button>
           </div>
         </div>
       )}

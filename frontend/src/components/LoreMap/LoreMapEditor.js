@@ -1,3 +1,4 @@
+// LoreMapEditor.js - Complete version for infinite canvas
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoreMap from './LoreMap';
@@ -12,7 +13,6 @@ const LoreMapEditor = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
-  // Use useCallback to memoize the fetchLoreMap function
   const fetchLoreMap = useCallback(async () => {
     try {
       setLoading(true);
@@ -33,18 +33,16 @@ const LoreMapEditor = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  }, [id]); // id is the only dependency for this function
+  }, [id]);
 
-  // Now use fetchLoreMap in the effect
   useEffect(() => {
     fetchLoreMap();
-  }, [fetchLoreMap]); // fetchLoreMap is stable and won't cause unnecessary re-renders
+  }, [fetchLoreMap]);
 
   const handleUpdateLoreMap = (updatedMap) => {
     setLoreMap(updatedMap);
   };
 
-  // Modified to redirect to dashboard after saving
   const handleSaveAndReturn = async () => {
     try {
       setSaving(true);
@@ -107,10 +105,7 @@ const LoreMapEditor = ({ user }) => {
         });
       }
       
-      // Show success message briefly, then force navigation
       alert('Campaign saved successfully!');
-      
-      // Use window.location for guaranteed navigation
       window.location.href = '/dashboard';
       
     } catch (err) {
@@ -121,7 +116,6 @@ const LoreMapEditor = ({ user }) => {
     }
   };
 
-  // Keep the original save function for quick saves without redirect
   const handleQuickSave = async () => {
     try {
       setSaving(true);
@@ -184,9 +178,7 @@ const LoreMapEditor = ({ user }) => {
         });
       }
       
-      // Refresh the map data
       await fetchLoreMap();
-      
       alert('Campaign saved successfully!');
     } catch (err) {
       console.error('Failed to save changes:', err);
@@ -198,11 +190,9 @@ const LoreMapEditor = ({ user }) => {
   
   const handleExportMap = () => {
     try {
-      // Create a data URL for a JSON file
       const dataStr = JSON.stringify(loreMap, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
       
-      // Create a download link and trigger it
       const exportLink = document.createElement('a');
       exportLink.setAttribute('href', dataUri);
       exportLink.setAttribute('download', `${loreMap.title.replace(/\s+/g, '_')}_map.json`);
@@ -216,9 +206,7 @@ const LoreMapEditor = ({ user }) => {
     }
   };
 
-  // Direct navigation to dashboard
   const handleReturnToDashboard = () => {
-    // Use window.location for guaranteed navigation
     window.location.href = '/dashboard';
   };
 
@@ -233,37 +221,46 @@ const LoreMapEditor = ({ user }) => {
   return (
     <div className="loremap-editor">
       <div className="editor-header">
-        <h2>{loreMap.title}</h2>
-        <p>{loreMap.description}</p>
-      </div>
-      
-      <div className="editor-toolbox">
-        <button 
-          className="editor-button" 
-          onClick={handleQuickSave}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Quick Save'}
-        </button>
-        <button 
-          className="editor-button" 
-          onClick={handleSaveAndReturn}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save & Return to Dashboard'}
-        </button>
-        <button 
-          className="editor-button secondary" 
-          onClick={handleExportMap}
-        >
-          Export Map
-        </button>
-        <button 
-          className="editor-button secondary" 
-          onClick={handleReturnToDashboard}
-        >
-          Return to Dashboard
-        </button>
+        <div className="header-left">
+          <h2>{loreMap.title}</h2>
+          <p>{loreMap.description}</p>
+        </div>
+        
+        <div className="header-actions">
+          <button 
+            className="editor-button secondary" 
+            onClick={handleReturnToDashboard}
+            title="Return to Dashboard without saving"
+          >
+            🏠 Dashboard
+          </button>
+          
+          <button 
+            className="editor-button secondary" 
+            onClick={handleExportMap}
+            title="Export map as JSON file"
+          >
+            📁 Export
+          </button>
+          
+          <button 
+            className="editor-button" 
+            onClick={handleQuickSave}
+            disabled={saving}
+            title="Save changes and continue editing"
+          >
+            {saving ? '💾 Saving...' : '💾 Save'}
+          </button>
+          
+          <button 
+            className="editor-button primary" 
+            onClick={handleSaveAndReturn}
+            disabled={saving}
+            title="Save and return to Dashboard"
+          >
+            {saving ? '✅ Saving...' : '✅ Save & Exit'}
+          </button>
+        </div>
       </div>
       
       <div className="editor-content">
