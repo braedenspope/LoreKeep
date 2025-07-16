@@ -112,7 +112,7 @@ const CharacterManager = ({ user }) => {
     
     // Check for attack-related keywords
     const attackKeywords = [
-      'attack', 'attacks', 'hit:', 'melee weapon attack', 'ranged weapon attack',
+      'hit:', 'melee weapon attack', 'ranged weapon attack',
       'spell attack', 'weapon attack', 'to hit', 'damage:'
     ];
     
