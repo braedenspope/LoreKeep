@@ -113,17 +113,23 @@ const CharacterManager = ({ user }) => {
     // Check for attack-related keywords
     const attackKeywords = [
       'attack', 'attacks', 'hit:', 'melee weapon attack', 'ranged weapon attack',
-      'spell attack', 'weapon attack', 'to hit', '+\\d+ to hit', 'damage:'
+      'spell attack', 'weapon attack', 'to hit', 'damage:'
     ];
     
-    return attackKeywords.some(keyword => {
-      if (keyword.includes('\\d')) {
-        // Use regex for patterns like "+5 to hit"
-        const regex = new RegExp(keyword);
-        return regex.test(actionText) || regex.test(actionName);
-      }
-      return actionText.includes(keyword) || actionName.includes(keyword);
-    });
+    // Check basic keywords first
+    const hasAttackKeyword = attackKeywords.some(keyword => 
+      actionText.includes(keyword) || actionName.includes(keyword)
+    );
+    
+    if (hasAttackKeyword) return true;
+    
+    // Check for "+X to hit" pattern with proper regex escaping
+    const attackBonusPattern = /[+\-]\d+\s*to\s*hit/i;
+    if (attackBonusPattern.test(actionText) || attackBonusPattern.test(actionName)) {
+      return true;
+    }
+    
+    return false;
   };
 
   // Roll attack action with damage
