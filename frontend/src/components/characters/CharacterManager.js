@@ -98,32 +98,42 @@ const CharacterManager = ({ user }) => {
     setRollActionName(`${abilityName} Check`);
   };
 
-  // Roll custom action
-  const handleActionRoll = (actionName, actionDescription) => {
-    // Try to extract dice notation from action description
-    const diceMatch = actionDescription.match(/(\d+d\d+(?:[+-]\d+)?)/i);
+  // Check if an action is an attack (contains attack-related keywords)
+  const isAttackAction = (action) => {
+    if (!action) return false;
     
-    if (diceMatch) {
-      const result = rollFromNotation(diceMatch[0]);
-      if (result) {
-        setDiceRollResult(result);
-        setRollActionName(actionName);
-        return;
-      }
+    const actionText = (action.description || action.desc || '').toLowerCase();
+    const actionName = (action.name || '').toLowerCase();
+    
+    // Check if it has attack_bonus (definitive indicator)
+    if (action.attack_bonus || action.attack_bonus === 0) {
+      return true;
     }
     
-    // Fallback to 1d20 if no dice notation found
-    const result = rollFromNotation('1d20');
-    setDiceRollResult(result);
-    setRollActionName(actionName);
+    // Check for attack-related keywords
+    const attackKeywords = [
+      'attack', 'attacks', 'hit:', 'melee weapon attack', 'ranged weapon attack',
+      'spell attack', 'weapon attack', 'to hit', '+\\d+ to hit', 'damage:'
+    ];
+    
+    return attackKeywords.some(keyword => {
+      if (keyword.includes('\\d')) {
+        // Use regex for patterns like "+5 to hit"
+        const regex = new RegExp(keyword);
+        return regex.test(actionText) || regex.test(actionName);
+      }
+      return actionText.includes(keyword) || actionName.includes(keyword);
+    });
   };
 
-  // Roll monster action with damage
-  const handleMonsterActionRoll = (action) => {
+  // Roll attack action with damage
+  const handleAttackActionRoll = (action) => {
     const { name, attack_bonus, damage } = action;
+    const actionDescription = action.description || action.desc || '';
     
-    if (attack_bonus) {
-      // This is an attack - roll to hit
+    // Check if we have a valid attack bonus
+    if (attack_bonus !== undefined && attack_bonus !== null && !isNaN(attack_bonus)) {
+      // This is an attack with explicit attack bonus - roll to hit
       const attackRoll = rollFromNotation('1d20');
       const totalAttack = attackRoll.total + attack_bonus;
       
@@ -148,8 +158,49 @@ const CharacterManager = ({ user }) => {
       });
       setRollActionName(name);
     } else {
-      // Just a regular action roll
-      handleActionRoll(name, action.description || action.desc || '');
+      // Try to extract attack bonus from description text
+      const attackBonusMatch = actionDescription.match(/[+\-](\d+)\s*to\s*hit/i);
+      const extractedBonus = attackBonusMatch ? parseInt(attackBonusMatch[1]) : null;
+      
+      if (extractedBonus !== null) {
+        // Found attack bonus in description
+        const attackRoll = rollFromNotation('1d20');
+        const totalAttack = attackRoll.total + extractedBonus;
+        
+        // Try to extract damage from description
+        const damageMatch = actionDescription.match(/(\d+d\d+(?:[+\-]\d+)?)\s*(\w+)?\s*damage/i);
+        let damageText = '';
+        
+        if (damageMatch) {
+          const damageRoll = rollFromNotation(damageMatch[1]);
+          const damageType = damageMatch[2] || '';
+          damageText = ` | Damage: ${damageRoll.total} ${damageType}`;
+        }
+        
+        setDiceRollResult({
+          ...attackRoll,
+          total: totalAttack,
+          formatted: `Attack Roll: 1d20+${extractedBonus} = ${attackRoll.roll}+${extractedBonus} = ${totalAttack}${damageText}`
+        });
+        setRollActionName(name);
+      } else {
+        // Try to extract any dice notation from description for damage roll
+        const diceMatch = actionDescription.match(/(\d+d\d+(?:[+-]\d+)?)/i);
+        
+        if (diceMatch) {
+          const result = rollFromNotation(diceMatch[0]);
+          if (result) {
+            setDiceRollResult(result);
+            setRollActionName(`${name} - Damage`);
+            return;
+          }
+        }
+        
+        // Fallback to 1d20 for basic attack roll
+        const result = rollFromNotation('1d20');
+        setDiceRollResult(result);
+        setRollActionName(`${name} - Attack Roll`);
+      }
     }
   };
 
@@ -694,7 +745,7 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
 
-        {/* Monster Actions with dice rolling */}
+        {/* Monster Actions with selective dice rolling */}
         {selectedCharacter.actions && (
           <div className="character-actions">
             <h3>Actions</h3>
@@ -703,13 +754,15 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="action-item">
                   <div className="action-name">{action.name || 'Unnamed Action'}</div>
                   <div className="action-description">{action.description || action.desc || 'No description'}</div>
-                  <button 
-                    className="roll-btn"
-                    onClick={() => handleMonsterActionRoll(action)}
-                    title="Roll this action"
-                  >
-                    🎲 Roll
-                  </button>
+                  {isAttackAction(action) && (
+                    <button 
+                      className="roll-btn"
+                      onClick={() => handleAttackActionRoll(action)}
+                      title="Roll this attack"
+                    >
+                      🎲 Roll Attack
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -725,13 +778,15 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="legendary-action-item">
                   <div className="legendary-action-name">{action.name || 'Unnamed Action'}</div>
                   <div className="legendary-action-description">{action.description || action.desc || 'No description'}</div>
-                  <button 
-                    className="roll-btn"
-                    onClick={() => handleMonsterActionRoll(action)}
-                    title="Roll this legendary action"
-                  >
-                    🎲 Roll
-                  </button>
+                  {isAttackAction(action) && (
+                    <button 
+                      className="roll-btn"
+                      onClick={() => handleAttackActionRoll(action)}
+                      title="Roll this legendary attack"
+                    >
+                      🎲 Roll Attack
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -747,13 +802,15 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="reaction-item">
                   <div className="reaction-name">{reaction.name || 'Unnamed Reaction'}</div>
                   <div className="reaction-description">{reaction.description || reaction.desc || 'No description'}</div>
-                  <button 
-                    className="roll-btn"
-                    onClick={() => handleActionRoll(reaction.name, reaction.description || reaction.desc)}
-                    title="Roll this reaction"
-                  >
-                    🎲 Roll
-                  </button>
+                  {isAttackAction(reaction) && (
+                    <button 
+                      className="roll-btn"
+                      onClick={() => handleAttackActionRoll(reaction)}
+                      title="Roll this reaction attack"
+                    >
+                      🎲 Roll Attack
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -772,13 +829,15 @@ const CharacterManager = ({ user }) => {
                     <div key={index} className="action-item">
                       <div className="action-name">{action.name}</div>
                       <div className="action-description">{action.description}</div>
-                      <button 
-                        className="roll-btn"
-                        onClick={() => handleActionRoll(action.name, action.description)}
-                        title="Roll this action"
-                      >
-                        🎲 Roll
-                      </button>
+                      {isAttackAction(action) && (
+                        <button 
+                          className="roll-btn"
+                          onClick={() => handleAttackActionRoll(action)}
+                          title="Roll this attack"
+                        >
+                          🎲 Roll Attack
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
