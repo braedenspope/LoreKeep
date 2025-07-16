@@ -1,4 +1,4 @@
-// LoreMap.jsx - Enhanced with improved event conditions and file validation
+// LoreMap.jsx - Fixed character addition functionality
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
@@ -134,6 +134,8 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           }
         } catch (err) {
           console.error('Failed to fetch event characters:', err);
+          // If fetching fails, just set empty array
+          setEventCharacters([]);
         }
       };
       
@@ -526,12 +528,20 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-  // Add character to event
+  // FIXED: Add character to event with better error handling
   const handleAddCharacterToEvent = async (characterId) => {
-    if (!editingEvent || !characterId || eventCharacters.includes(characterId)) return;
+    const parsedCharacterId = parseInt(characterId, 10);
+    
+    if (!editingEvent || !parsedCharacterId || eventCharacters.includes(parsedCharacterId)) {
+      console.log('Skipping character addition:', { editingEvent: !!editingEvent, characterId: parsedCharacterId, alreadyPresent: eventCharacters.includes(parsedCharacterId) });
+      return;
+    }
     
     try {
+      // Check if this is a saved event (has a real ID from backend)
       if (editingEvent.id && editingEvent.id <= 1000000) {
+        console.log('Adding character to saved event:', editingEvent.id, 'character:', parsedCharacterId);
+        
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters`, {
           method: 'POST',
           headers: {
@@ -539,18 +549,23 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           },
           credentials: 'include',
           body: JSON.stringify({
-            character_id: characterId,
+            character_id: parsedCharacterId,
             role: 'present'
           })
         });
         
         if (response.ok) {
-          setEventCharacters([...eventCharacters, characterId]);
+          console.log('Successfully added character to event via API');
+          setEventCharacters([...eventCharacters, parsedCharacterId]);
         } else {
-          throw new Error('Failed to add character to event');
+          const errorData = await response.json();
+          console.error('API error response:', errorData);
+          throw new Error(errorData.error || `Server responded with status ${response.status}`);
         }
       } else {
-        setEventCharacters([...eventCharacters, characterId]);
+        // For new/unsaved events, just update local state
+        console.log('Adding character to unsaved event locally');
+        setEventCharacters([...eventCharacters, parsedCharacterId]);
       }
     } catch (err) {
       console.error('Failed to add character to event:', err);
@@ -558,23 +573,31 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }
   };
 
-  // Remove character from event
+  // FIXED: Remove character from event with better error handling
   const handleRemoveCharacterFromEvent = async (characterId) => {
     if (!editingEvent) return;
     
     try {
+      // Check if this is a saved event (has a real ID from backend)
       if (editingEvent.id && editingEvent.id <= 1000000) {
+        console.log('Removing character from saved event:', editingEvent.id, 'character:', characterId);
+        
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters/${characterId}`, {
           method: 'DELETE',
           credentials: 'include'
         });
         
         if (response.ok) {
+          console.log('Successfully removed character from event via API');
           setEventCharacters(eventCharacters.filter(id => id !== characterId));
         } else {
-          throw new Error('Failed to remove character from event');
+          const errorData = await response.json();
+          console.error('API error response:', errorData);
+          throw new Error(errorData.error || `Server responded with status ${response.status}`);
         }
       } else {
+        // For new/unsaved events, just update local state
+        console.log('Removing character from unsaved event locally');
         setEventCharacters(eventCharacters.filter(id => id !== characterId));
       }
     } catch (err) {
@@ -972,7 +995,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                   </label>
                 </div>
                 
-                {/* Characters Section */}
+                {/* FIXED: Characters Section with better error handling */}
                 <div className="characters-section">
                   <h3>Characters Present</h3>
                   <div className="character-select">
@@ -980,7 +1003,9 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       value="" 
                       onChange={(e) => {
                         if (e.target.value) {
-                          handleAddCharacterToEvent(parseInt(e.target.value, 10));
+                          console.log('Selected character:', e.target.value);
+                          handleAddCharacterToEvent(e.target.value);
+                          e.target.value = ''; // Reset dropdown
                         }
                       }}
                     >
@@ -988,7 +1013,10 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       {characters
                         .filter(char => !eventCharacters.includes(char.id))
                         .map(char => (
-                          <option key={char.id} value={char.id}>{char.name} ({char.character_type})</option>
+                          <option key={char.id} value={char.id}>
+                            {char.name} ({char.character_type})
+                            {char.is_official && ' - Official'}
+                          </option>
                         ))}
                     </select>
                   </div>
@@ -1000,12 +1028,18 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       <ul className="character-name-list">
                         {eventCharacters.map(charId => {
                           const character = characters.find(c => c.id === charId);
-                          if (!character) return null;
+                          if (!character) {
+                            console.warn('Character not found:', charId);
+                            return null;
+                          }
                           
                           return (
                             <li key={charId} className="character-list-item">
                               <span className="character-name">{character.name}</span>
-                              <span className="character-type">({character.character_type})</span>
+                              <span className="character-type">
+                                ({character.character_type}
+                                {character.is_official && ' - Official'})
+                              </span>
                               <button 
                                 className="remove-character-btn"
                                 onClick={() => handleRemoveCharacterFromEvent(charId)}
