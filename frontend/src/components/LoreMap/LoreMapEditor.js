@@ -1,4 +1,4 @@
-// LoreMapEditor.js - Complete version for infinite canvas
+// LoreMapEditor.js - Enhanced with complete export functionality
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoreMap from './LoreMap';
@@ -11,6 +11,7 @@ const LoreMapEditor = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
 
   const fetchLoreMap = useCallback(async () => {
@@ -188,7 +189,8 @@ const LoreMapEditor = ({ user }) => {
     }
   };
   
-  const handleExportMap = () => {
+  // Simple export for basic map data
+  const handleBasicExport = () => {
     try {
       const dataStr = JSON.stringify(loreMap, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -203,6 +205,151 @@ const LoreMapEditor = ({ user }) => {
     } catch (err) {
       console.error('Failed to export map:', err);
       alert('Failed to export map. Please try again.');
+    }
+  };
+
+  // Complete export with all related data
+  const handleCompleteExport = async () => {
+    try {
+      setExporting(true);
+      
+      // Fetch all related data
+      const [charactersResponse] = await Promise.all([
+        fetch(`${config.apiUrl}/api/characters`, { 
+          method: 'GET',
+          credentials: 'include' 
+        })
+      ]);
+      
+      if (!charactersResponse.ok) {
+        throw new Error('Failed to fetch characters for export');
+      }
+      
+      const characters = await charactersResponse.json();
+      
+      // Get event character associations
+      const eventCharacterAssociations = {};
+      for (const event of loreMap.events) {
+        if (event.id && event.id <= 1000000) {
+          try {
+            const response = await fetch(`${config.apiUrl}/api/events/${event.id}/characters`, {
+              method: 'GET',
+              credentials: 'include'
+            });
+            
+            if (response.ok) {
+              const eventChars = await response.json();
+              eventCharacterAssociations[event.id] = eventChars.map(ec => ec.character_id);
+            }
+          } catch (err) {
+            console.warn(`Could not fetch characters for event ${event.id}:`, err);
+          }
+        }
+      }
+      
+      // Filter characters to include user's custom characters and any used in events
+      const usedCharacterIds = new Set();
+      Object.values(eventCharacterAssociations).forEach(charIds => {
+        charIds.forEach(id => usedCharacterIds.add(id));
+      });
+      
+      const relevantCharacters = characters.filter(char => 
+        // Include user's custom characters
+        !char.is_official || 
+        // Include official characters used in events
+        usedCharacterIds.has(char.id)
+      );
+      
+      // Create complete export object
+      const exportData = {
+        metadata: {
+          export_date: new Date().toISOString(),
+          export_version: "1.0",
+          lorekeep_version: "1.0.0",
+          exported_by: user?.username || 'Unknown User'
+        },
+        campaign: {
+          id: loreMap.id,
+          title: loreMap.title,
+          description: loreMap.description,
+          created_at: loreMap.created_at,
+          updated_at: loreMap.updated_at
+        },
+        events: loreMap.events.map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          location: event.location,
+          position: event.position,
+          is_party_location: event.is_party_location || event.isPartyLocation,
+          conditions: event.conditions,
+          battle_map_url: event.battle_map_url,
+          // Include character associations
+          characters: eventCharacterAssociations[event.id] || []
+        })),
+        connections: loreMap.connections.map(conn => ({
+          id: conn.id,
+          from: conn.from,
+          to: conn.to,
+          description: conn.description
+        })),
+        characters: relevantCharacters.map(char => ({
+          id: char.id,
+          name: char.name,
+          character_type: char.character_type,
+          description: char.description,
+          is_official: char.is_official,
+          // Include stats and abilities
+          strength: char.strength,
+          dexterity: char.dexterity,
+          constitution: char.constitution,
+          intelligence: char.intelligence,
+          wisdom: char.wisdom,
+          charisma: char.charisma,
+          armor_class: char.armor_class,
+          hit_points: char.hit_points,
+          challenge_rating: char.challenge_rating,
+          creature_type: char.creature_type,
+          // Include action data if available
+          actions: char.actions,
+          legendary_actions: char.legendary_actions,
+          special_abilities: char.special_abilities,
+          reactions: char.reactions,
+          // Include other monster data
+          skills: char.skills,
+          damage_resistances: char.damage_resistances,
+          damage_immunities: char.damage_immunities,
+          condition_immunities: char.condition_immunities,
+          senses: char.senses,
+          languages: char.languages
+        })),
+        statistics: {
+          total_events: loreMap.events.length,
+          total_connections: loreMap.connections.length,
+          total_characters: relevantCharacters.length,
+          custom_characters: relevantCharacters.filter(c => !c.is_official).length,
+          official_monsters: relevantCharacters.filter(c => c.is_official).length
+        }
+      };
+      
+      // Create and download file
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportLink = document.createElement('a');
+      exportLink.setAttribute('href', dataUri);
+      exportLink.setAttribute('download', `${loreMap.title.replace(/\s+/g, '_')}_complete_export.json`);
+      document.body.appendChild(exportLink);
+      exportLink.click();
+      document.body.removeChild(exportLink);
+      
+      alert('Complete campaign data exported successfully!');
+      
+    } catch (err) {
+      console.error('Failed to export campaign:', err);
+      alert(`Failed to export campaign data: ${err.message}`);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -237,10 +384,19 @@ const LoreMapEditor = ({ user }) => {
           
           <button 
             className="editor-button secondary" 
-            onClick={handleExportMap}
-            title="Export map as JSON file"
+            onClick={handleBasicExport}
+            title="Export basic map data as JSON file"
           >
-            📁 Export
+            📁 Basic Export
+          </button>
+          
+          <button 
+            className="editor-button secondary" 
+            onClick={handleCompleteExport}
+            disabled={exporting}
+            title="Export complete campaign data including characters"
+          >
+            {exporting ? '📦 Exporting...' : '📦 Complete Export'}
           </button>
           
           <button 

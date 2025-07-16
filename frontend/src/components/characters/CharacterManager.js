@@ -130,9 +130,11 @@ const CharacterManager = ({ user }) => {
       let damageText = '';
       if (damage && Array.isArray(damage) && damage.length > 0) {
         const damageRolls = damage.map(d => {
-          if (d.damage_dice) {
-            const damageRoll = rollFromNotation(d.damage_dice);
-            return `${damageRoll.total} ${d.damage_type?.name || d.damage_type || ''}`;
+          if (d.damage_dice || d) {
+            const dice = d.damage_dice || d;
+            const damageRoll = rollFromNotation(dice);
+            const damageType = d.damage_type?.name || d.damage_type || '';
+            return `${damageRoll.total} ${damageType}`;
           }
           return 'No damage dice';
         });
@@ -567,34 +569,58 @@ const CharacterManager = ({ user }) => {
     );
   };
 
-  // Helper function to render character stats - UPDATED WITH SAFE JSON PARSING
+  // Helper function to render character stats with clickable dice rolling
   function renderCharacterStats() {
     if (!selectedCharacter) return null;
     
     return (
       <>
         <div className="stats-grid">
-          <div className="stat-item">
+          <div 
+            className="stat-item clickable" 
+            onClick={() => handleAbilityRoll('Strength', selectedCharacter.strength || 10)}
+            title="Click to roll Strength check"
+          >
             <span className="stat-label">STR</span>
             <span className="stat-value">{selectedCharacter.strength || 10}</span>
           </div>
-          <div className="stat-item">
+          <div 
+            className="stat-item clickable" 
+            onClick={() => handleAbilityRoll('Dexterity', selectedCharacter.dexterity || 10)}
+            title="Click to roll Dexterity check"
+          >
             <span className="stat-label">DEX</span>
             <span className="stat-value">{selectedCharacter.dexterity || 10}</span>
           </div>
-          <div className="stat-item">
+          <div 
+            className="stat-item clickable" 
+            onClick={() => handleAbilityRoll('Constitution', selectedCharacter.constitution || 10)}
+            title="Click to roll Constitution check"
+          >
             <span className="stat-label">CON</span>
             <span className="stat-value">{selectedCharacter.constitution || 10}</span>
           </div>
-          <div className="stat-item">
+          <div 
+            className="stat-item clickable" 
+            onClick={() => handleAbilityRoll('Intelligence', selectedCharacter.intelligence || 10)}
+            title="Click to roll Intelligence check"
+          >
             <span className="stat-label">INT</span>
             <span className="stat-value">{selectedCharacter.intelligence || 10}</span>
           </div>
-          <div className="stat-item">
+          <div 
+            className="stat-item clickable" 
+            onClick={() => handleAbilityRoll('Wisdom', selectedCharacter.wisdom || 10)}
+            title="Click to roll Wisdom check"
+          >
             <span className="stat-label">WIS</span>
             <span className="stat-value">{selectedCharacter.wisdom || 10}</span>
           </div>
-          <div className="stat-item">
+          <div 
+            className="stat-item clickable" 
+            onClick={() => handleAbilityRoll('Charisma', selectedCharacter.charisma || 10)}
+            title="Click to roll Charisma check"
+          >
             <span className="stat-label">CHA</span>
             <span className="stat-value">{selectedCharacter.charisma || 10}</span>
           </div>
@@ -612,7 +638,7 @@ const CharacterManager = ({ user }) => {
           {selectedCharacter.challenge_rating && (
             <div className="combat-stat">
               <span className="stat-label">CR</span>
-              <span className="stat-value">{selectedCharacter.challenge_rating}</span>
+              <span className="stat-value">{formatChallengeRating(selectedCharacter.challenge_rating)}</span>
             </div>
           )}
         </div>
@@ -653,7 +679,7 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
 
-        {/* Monster Special Abilities - FIXED WITH SAFE PARSING */}
+        {/* Monster Special Abilities */}
         {selectedCharacter.special_abilities && (
           <div className="character-special-abilities">
             <h3>Special Abilities</h3>
@@ -668,7 +694,7 @@ const CharacterManager = ({ user }) => {
           </div>
         )}
 
-        {/* Monster Actions - FIXED WITH SAFE PARSING */}
+        {/* Monster Actions with dice rolling */}
         {selectedCharacter.actions && (
           <div className="character-actions">
             <h3>Actions</h3>
@@ -677,14 +703,20 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="action-item">
                   <div className="action-name">{action.name || 'Unnamed Action'}</div>
                   <div className="action-description">{action.description || action.desc || 'No description'}</div>
-                  
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleMonsterActionRoll(action)}
+                    title="Roll this action"
+                  >
+                    🎲 Roll
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Legendary Actions - FIXED WITH SAFE PARSING */}
+        {/* Legendary Actions */}
         {selectedCharacter.legendary_actions && (
           <div className="character-legendary-actions">
             <h3>Legendary Actions</h3>
@@ -693,13 +725,20 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="legendary-action-item">
                   <div className="legendary-action-name">{action.name || 'Unnamed Action'}</div>
                   <div className="legendary-action-description">{action.description || action.desc || 'No description'}</div>
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleMonsterActionRoll(action)}
+                    title="Roll this legendary action"
+                  >
+                    🎲 Roll
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Reactions - FIXED WITH SAFE PARSING */}
+        {/* Reactions */}
         {selectedCharacter.reactions && (
           <div className="character-reactions">
             <h3>Reactions</h3>
@@ -708,6 +747,13 @@ const CharacterManager = ({ user }) => {
                 <div key={index} className="reaction-item">
                   <div className="reaction-name">{reaction.name || 'Unnamed Reaction'}</div>
                   <div className="reaction-description">{reaction.description || reaction.desc || 'No description'}</div>
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleActionRoll(reaction.name, reaction.description || reaction.desc)}
+                    title="Roll this reaction"
+                  >
+                    🎲 Roll
+                  </button>
                 </div>
               ))}
             </div>
@@ -726,6 +772,13 @@ const CharacterManager = ({ user }) => {
                     <div key={index} className="action-item">
                       <div className="action-name">{action.name}</div>
                       <div className="action-description">{action.description}</div>
+                      <button 
+                        className="roll-btn"
+                        onClick={() => handleActionRoll(action.name, action.description)}
+                        title="Roll this action"
+                      >
+                        🎲 Roll
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -822,7 +875,7 @@ const CharacterManager = ({ user }) => {
                 </div>
                 <div className="character-type">
                   {character.character_type}
-                  {character.challenge_rating && ` (CR ${character.challenge_rating})`}
+                  {character.challenge_rating && ` (CR ${formatChallengeRating(character.challenge_rating)})`}
                 </div>
               </div>
             ))

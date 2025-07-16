@@ -1,4 +1,4 @@
-// LoreMap.jsx - Fixed version with proper coordinate transformations
+// LoreMap.jsx - Enhanced with improved event conditions and file validation
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
@@ -30,6 +30,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [eventStates, setEventStates] = useState({});
   const [battleMapFile, setBattleMapFile] = useState(null);
   const [battleMapPreview, setBattleMapPreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(false);
   
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -302,7 +303,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-  // Check if event conditions are met
+  // Enhanced event condition checking with detailed reasons
   const checkEventConditions = (event) => {
     let conditions = [];
     
@@ -322,27 +323,65 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }
     
     if (!conditions || conditions.length === 0) {
-      return true;
+      return { accessible: true, reason: null };
     }
     
-    return conditions.every(condition => {
+    for (let condition of conditions) {
+      let isMet = false;
+      let reason = '';
+      
       switch (condition.type) {
         case 'event_completed':
           const isCompleted = eventStates[`event_${condition.target}_completed`] || false;
-          return condition.required ? isCompleted : !isCompleted;
+          isMet = condition.required ? isCompleted : !isCompleted;
+          reason = condition.required 
+            ? `Requires "${getEventName(condition.target)}" to be completed`
+            : `Requires "${getEventName(condition.target)}" to NOT be completed`;
+          break;
+          
         case 'character_freed':
           const isFreed = eventStates[`character_${condition.target}_freed`] || false;
-          return condition.required ? isFreed : !isFreed;
+          isMet = condition.required ? isFreed : !isFreed;
+          reason = condition.required 
+            ? `Requires "${getCharacterName(condition.target)}" to be freed`
+            : `Requires "${getCharacterName(condition.target)}" to NOT be freed`;
+          break;
+          
         case 'character_alive':
           const isAlive = eventStates[`character_${condition.target}_alive`] !== false;
-          return condition.required ? isAlive : !isAlive;
+          isMet = condition.required ? isAlive : !isAlive;
+          reason = condition.required 
+            ? `Requires "${getCharacterName(condition.target)}" to be alive`
+            : `Requires "${getCharacterName(condition.target)}" to be dead`;
+          break;
+          
         case 'custom':
           const customState = eventStates[`custom_${condition.id}`] || false;
-          return condition.required ? customState : !customState;
+          isMet = condition.required ? customState : !customState;
+          reason = condition.description || 'Custom condition not met';
+          break;
+          
         default:
-          return true;
+          isMet = true;
       }
-    });
+      
+      if (!isMet) {
+        return { accessible: false, reason };
+      }
+    }
+    
+    return { accessible: true, reason: null };
+  };
+
+  // Helper functions for condition checking
+  const getEventName = (eventId) => {
+    const event = events.find(e => e.id.toString() === eventId);
+    return event ? event.title : 'Unknown Event';
+  };
+
+  const getCharacterName = (characterId) => {
+    const character = characters.find(c => c.id.toString() === characterId);
+    return character ? character.name : 'Unknown Character';
   };
 
   // Toggle event completion state
@@ -409,18 +448,37 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     }
   };
 
-  // Handle battle map file upload
+  // Enhanced battle map file upload with validation
   const handleBattleMapUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setBattleMapFile(file);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setBattleMapPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    // Validate file using config utility
+    const validation = config.validateImageFile(file);
+    
+    if (!validation.valid) {
+      alert(`Upload failed: ${validation.error}`);
+      e.target.value = ''; // Reset file input
+      return;
     }
+    
+    setBattleMapFile(file);
+    setUploadProgress(true);
+    
+    // Show loading state while creating preview
+    setBattleMapPreview(null);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setBattleMapPreview(e.target.result);
+      setUploadProgress(false);
+    };
+    reader.onerror = () => {
+      alert('Failed to read image file. Please try again.');
+      setBattleMapFile(null);
+      setUploadProgress(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Remove battle map
@@ -439,9 +497,12 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             ...editingEvent,
             battle_map_url: null
           });
+        } else {
+          throw new Error('Failed to remove battle map from server');
         }
       } catch (err) {
         console.error('Failed to remove battle map:', err);
+        alert(`Failed to remove battle map: ${err.message}`);
       }
     } else {
       setBattleMapFile(null);
@@ -485,12 +546,15 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         
         if (response.ok) {
           setEventCharacters([...eventCharacters, characterId]);
+        } else {
+          throw new Error('Failed to add character to event');
         }
       } else {
         setEventCharacters([...eventCharacters, characterId]);
       }
     } catch (err) {
       console.error('Failed to add character to event:', err);
+      alert(`Failed to add character: ${err.message}`);
     }
   };
 
@@ -507,16 +571,19 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         
         if (response.ok) {
           setEventCharacters(eventCharacters.filter(id => id !== characterId));
+        } else {
+          throw new Error('Failed to remove character from event');
         }
       } else {
         setEventCharacters(eventCharacters.filter(id => id !== characterId));
       }
     } catch (err) {
       console.error('Failed to remove character from event:', err);
+      alert(`Failed to remove character: ${err.message}`);
     }
   };
 
-  // Save event changes
+  // Enhanced save event with better error handling
   const handleSaveEvent = async () => {
     if (!editingEvent) return;
     
@@ -524,7 +591,15 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       let updatedEvent = { ...editingEvent };
       
       if (editingEvent.id && editingEvent.id <= 1000000) {
+        // Handle battle map upload with validation
         if (battleMapFile) {
+          // Double-check file validation before upload
+          const validation = config.validateImageFile(battleMapFile);
+          if (!validation.valid) {
+            alert(`Cannot save: ${validation.error}`);
+            return;
+          }
+          
           const formData = new FormData();
           formData.append('battle_map', battleMapFile);
           
@@ -538,10 +613,12 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             const uploadData = await uploadResponse.json();
             updatedEvent.battle_map_url = uploadData.battle_map_url;
           } else {
-            throw new Error('Failed to upload battle map');
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.error || 'Failed to upload battle map');
           }
         }
         
+        // Save other event data
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}`, {
           method: 'PUT',
           headers: {
@@ -560,7 +637,8 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         });
         
         if (!response.ok) {
-          throw new Error('Failed to update event');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update event');
         }
         
         const backendEvent = await response.json();
@@ -570,6 +648,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         };
       }
       
+      // Update local state
       setEvents(events.map(evt => 
         evt.id === editingEvent.id ? updatedEvent : evt
       ));
@@ -586,7 +665,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       
     } catch (err) {
       console.error('Failed to save event:', err);
-      alert(`Failed to save event changes: ${err.message}`);
+      alert(`Failed to save event: ${err.message}`);
     }
   };
 
@@ -596,6 +675,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setBattleMapFile(null);
     setBattleMapPreview(null);
     setEventCharacters([]);
+    setUploadProgress(false);
   };
 
   // Delete an event
@@ -773,9 +853,9 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               transformOrigin: '0 0'
             }}
           >
-            {/* Event nodes */}
+            {/* Event nodes with enhanced condition indicators */}
             {events.map(event => {
-              const isAccessible = checkEventConditions(event);
+              const conditionStatus = checkEventConditions(event);
               const isCompleted = eventStates[`event_${event.id}_completed`] || false;
               
               return (
@@ -786,33 +866,35 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     ${event.isPartyLocation ? 'party-location' : ''} 
                     ${selectedEvent?.id === event.id ? 'selected' : ''} 
                     ${connectionStart?.id === event.id ? 'connection-source' : ''}
-                    ${!isAccessible ? 'conditional-locked' : ''}
+                    ${!conditionStatus.accessible ? 'conditional-locked' : ''}
                     ${isCompleted ? 'completed' : ''}
                   `}
                   style={{
                     position: 'absolute',
                     left: `${event.position.x}px`,
                     top: `${event.position.y}px`,
-                    zIndex: 10
+                    zIndex: 10,
+                    opacity: conditionStatus.accessible ? 1 : 0.6
                   }}
                   onClick={(e) => handleEventClick(event, e)}
                   onDoubleClick={(e) => handleEventDoubleClick(event, e)}
+                  title={!conditionStatus.accessible ? conditionStatus.reason : event.description}
                 >
                   <h3>{event.title}</h3>
                   <div className="event-location">{event.location}</div>
                   
-                  {/* Condition indicators */}
-                  {!isAccessible && (
-                    <div className="condition-indicator locked">🔒</div>
+                  {/* Enhanced condition indicators */}
+                  {!conditionStatus.accessible && (
+                    <div className="condition-indicator locked" title={conditionStatus.reason}>🔒</div>
                   )}
                   {isCompleted && (
-                    <div className="condition-indicator completed">✓</div>
+                    <div className="condition-indicator completed" title="Event completed">✅</div>
                   )}
-                  {event.conditions && event.conditions.length > 0 && (
-                    <div className="condition-indicator has-conditions">⚙️</div>
+                  {event.conditions && event.conditions.length > 0 && conditionStatus.accessible && (
+                    <div className="condition-indicator has-conditions" title="Has conditions (met)">⚙️</div>
                   )}
                   {event.battle_map_url && (
-                    <div className="condition-indicator has-map">🗺️</div>
+                    <div className="condition-indicator has-map" title="Has battle map">🗺️</div>
                   )}
                 </div>
               );
@@ -941,7 +1023,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               </div>
               
               <div className="event-edit-right">
-                {/* Battle Map Section */}
+                {/* Enhanced Battle Map Section */}
                 <div className="battle-map-section">
                   <h3>Battle Map</h3>
                   <div className="battle-map-upload">
@@ -955,7 +1037,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     <label htmlFor="battle-map-input" className="upload-btn">
                       Choose Battle Map Image
                     </label>
+                    <div className="upload-help">
+                      <small>Supported: PNG, JPG, GIF, WebP • Max size: 16MB</small>
+                    </div>
                   </div>
+                  
+                  {uploadProgress && (
+                    <div className="upload-progress">
+                      Loading preview...
+                    </div>
+                  )}
                   
                   {battleMapPreview && (
                     <div className="battle-map-preview">
@@ -966,6 +1057,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       >
                         Remove Map
                       </button>
+                      {battleMapFile && (
+                        <div className="file-info">
+                          <small>{battleMapFile.name} ({(battleMapFile.size / 1024 / 1024).toFixed(1)}MB)</small>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
