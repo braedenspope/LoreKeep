@@ -1,4 +1,4 @@
-/* CharacterManager.css - Enhanced with clickable dice rolling */
+/* CharacterManager.css - Enhanced with selective dice rolling for ability scores and attacks only */
 .character-manager {
     display: flex;
     height: calc(100vh - 60px);
@@ -256,18 +256,19 @@
     overflow: hidden;
   }
   
-  /* Enhanced clickable stat styles */
+  /* Enhanced clickable stat styles for ability scores ONLY */
   .stat-item.clickable {
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
+    border: 2px solid #d5b78a; /* Thicker border for clickable items */
   }
   
   .stat-item.clickable:hover {
     background-color: #f0e6d2;
     border-color: #a67c52;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(101, 67, 33, 0.2);
+    box-shadow: 0 4px 8px rgba(101, 67, 33, 0.3);
   }
   
   .stat-item.clickable:active {
@@ -289,7 +290,7 @@
     opacity: 1;
   }
   
-  .stat-item::after {
+  .stat-item::before {
     content: '';
     position: absolute;
     top: 0;
@@ -468,6 +469,7 @@
     margin: 0 10px;
   }
   
+  /* Roll button only appears for attack actions */
   .roll-btn {
     background-color: #556b2f; /* Dark olive green */
     color: white;
@@ -482,7 +484,8 @@
     transition: all 0.2s;
     position: relative;
     z-index: 1;
-    min-width: 60px;
+    min-width: 100px;
+    white-space: nowrap;
   }
   
   .roll-btn:hover {
