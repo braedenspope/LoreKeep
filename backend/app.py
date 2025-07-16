@@ -584,11 +584,7 @@ def create_connection(lore_map_id):
         "message": "Connection created successfully!"
     }), 201
 
-# Replace the character API endpoints in your backend/app.py
-
-# Character routes
-# backend/app.py - Updated Character API endpoints with better JSON handling
-
+# FIXED Character routes - Now supports official monsters
 @app.route('/api/characters', methods=['GET'])
 def get_characters():
     user_id = session.get('user_id')
@@ -596,11 +592,15 @@ def get_characters():
         return jsonify({"error": "Not authenticated"}), 401
     
     try:
+        # FIXED: Show both user's characters AND official monsters
         characters = Character.query.filter(
             db.or_(
-                Character.user_id == user_id,
-                Character.is_official == True
+                Character.user_id == user_id,  # User's custom characters
+                db.and_(Character.user_id.is_(None), Character.is_official == True)  # Official monsters
             )
+        ).order_by(
+            Character.is_official.asc(),  # User characters first
+            Character.name.asc()  # Then alphabetical
         ).all()
         
         def safe_parse_json(json_str):
@@ -640,7 +640,7 @@ def get_characters():
                 "challenge_rating": char.challenge_rating,
                 "creature_type": char.creature_type,
                 "is_official": char.is_official or False,
-                "user_id": char.user_id,
+                "user_id": char.user_id,  # Will be None for official monsters
                 
                 # Safely parse action data with fallbacks
                 "actions": safe_parse_json(char.actions),
@@ -667,11 +667,12 @@ def get_character(id):
     if not user_id:
         return jsonify({"error": "Not authenticated"}), 401
     
+    # FIXED: Allow access to both user's characters AND official monsters
     character = Character.query.filter(
         Character.id == id,
         db.or_(
-            Character.user_id == user_id,
-            db.and_(Character.user_id.is_(None), Character.is_official == True)
+            Character.user_id == user_id,  # User's custom characters
+            db.and_(Character.user_id.is_(None), Character.is_official == True)  # Official monsters
         )
     ).first()
     
@@ -809,13 +810,8 @@ def update_character(id):
             character.charisma = data.get('charisma', character.charisma)
             character.armor_class = data.get('armor_class', character.armor_class)
             character.hit_points = data.get('hit_points', character.hit_points)
-            character.hit_dice = data.get('hit_dice', character.hit_dice)
-            character.speed = data.get('speed', character.speed)
-            character.size = data.get('size', character.size)
             character.creature_type = data.get('creature_type', character.creature_type)
-            character.alignment = data.get('alignment', character.alignment)
             character.challenge_rating = data.get('challenge_rating', character.challenge_rating)
-            character.experience_points = data.get('experience_points', character.experience_points)
         
         # Update basic fields
         character.name = data.get('name', character.name)
@@ -855,7 +851,7 @@ def delete_character(id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-# Event Character routes
+# FIXED Event Character routes - Now supports official monsters
 @app.route('/api/events/<int:event_id>/characters', methods=['GET'])
 def get_event_characters(event_id):
     user_id = session.get('user_id')
@@ -867,13 +863,22 @@ def get_event_characters(event_id):
     if not event:
         return jsonify({"error": "Event not found"}), 404
     
-    event_characters = EventCharacter.query.filter_by(event_id=event_id).all()
-    result = [{
-        "id": ec.id,
-        "event_id": ec.event_id,
-        "character_id": ec.character_id,
-        "role": ec.role
-    } for ec in event_characters]
+    # Get all characters associated with this event
+    event_characters = db.session.query(EventCharacter, Character).join(
+        Character, EventCharacter.character_id == Character.id
+    ).filter(EventCharacter.event_id == event_id).all()
+    
+    result = []
+    for event_char, character in event_characters:
+        result.append({
+            "id": event_char.id,
+            "event_id": event_char.event_id,
+            "character_id": event_char.character_id,
+            "role": event_char.role,
+            "character_name": character.name,
+            "character_type": character.character_type,
+            "is_official": character.is_official or False
+        })
     
     return jsonify(result)
 
@@ -891,10 +896,17 @@ def add_character_to_event(event_id):
     data = request.json
     character_id = data.get('character_id')
     
-    # Check if character belongs to user
-    character = Character.query.filter_by(id=character_id, user_id=user_id).first()
+    # FIXED: Allow both user's characters AND official monsters
+    character = Character.query.filter(
+        Character.id == character_id,
+        db.or_(
+            Character.user_id == user_id,  # User's custom characters
+            db.and_(Character.user_id.is_(None), Character.is_official == True)  # Official monsters
+        )
+    ).first()
+    
     if not character:
-        return jsonify({"error": "Character not found"}), 404
+        return jsonify({"error": "Character not found or access denied"}), 404
     
     # Check if character is already in event
     existing = EventCharacter.query.filter_by(event_id=event_id, character_id=character_id).first()
@@ -908,16 +920,21 @@ def add_character_to_event(event_id):
         role=data.get('role', 'present')
     )
     
-    db.session.add(event_character)
-    db.session.commit()
-    
-    return jsonify({
-        "id": event_character.id,
-        "event_id": event_character.event_id,
-        "character_id": event_character.character_id,
-        "role": event_character.role,
-        "message": "Character added to event!"
-    }), 201
+    try:
+        db.session.add(event_character)
+        db.session.commit()
+        
+        return jsonify({
+            "id": event_character.id,
+            "event_id": event_character.event_id,
+            "character_id": event_character.character_id,
+            "role": event_character.role,
+            "message": "Character added to event!"
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 @app.route('/api/events/<int:event_id>/characters/<int:character_id>', methods=['DELETE'])
 def remove_character_from_event(event_id, character_id):
@@ -935,152 +952,17 @@ def remove_character_from_event(event_id, character_id):
     if not event_character:
         return jsonify({"error": "Character not in event"}), 404
     
-    db.session.delete(event_character)
-    db.session.commit()
-    
-    return jsonify({
-        "message": "Character removed from event!"
-    })
-
-@app.route('/api/import-monsters', methods=['POST'])
-def import_monsters_endpoint():
-    """Temporary endpoint to import monsters - remove after use"""
     try:
-        # Import the function from your import script
-        from import_monsters import import_all_dnd_monsters
-        import_all_dnd_monsters()
-        return jsonify({"message": "Monsters imported successfully!"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
-@app.route('/api/debug-characters', methods=['GET'])
-def debug_characters():
-    """Debug endpoint to check character table structure - no auth required"""
-    try:
-        from sqlalchemy import inspect
-        inspector = inspect(db.engine)
-        
-        # Check if character table exists
-        tables = inspector.get_table_names()
-        if 'character' not in tables:
-            return jsonify({
-                "error": "character table does not exist",
-                "available_tables": tables
-            })
-        
-        columns = inspector.get_columns('character')
-        column_names = [col['name'] for col in columns]
-        
-        # Try to count characters without complex queries
-        try:
-            char_count = db.session.execute(db.text("SELECT COUNT(*) FROM character")).scalar()
-        except Exception as count_error:
-            char_count = f"Error counting: {str(count_error)}"
+        db.session.delete(event_character)
+        db.session.commit()
         
         return jsonify({
-            "character_table_columns": column_names,
-            "character_count": char_count,
-            "status": "success",
-            "tables": tables
-        })
-    except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "status": "failed"
-        })
-    
-@app.route('/api/reset-db', methods=['POST'])
-def reset_database():
-    """DANGEROUS: Reset database - remove after use"""
-    try:
-        print("Dropping all tables...")
-        db.drop_all()
-        print("Creating all tables...")
-        db.create_all()
-        print("Database reset complete!")
-        return jsonify({"message": "Database reset successfully"})
-    except Exception as e:
-        print(f"Error resetting database: {e}")
-        return jsonify({"error": str(e)}), 500
-    
-@app.route('/api/import-enhanced-monsters', methods=['POST'])
-def import_enhanced_monsters_endpoint():
-    """Import monsters with full action data - REMOVE AFTER USE"""
-    try:
-        from import_monsters_with_actions import import_enhanced_monsters
-        import_enhanced_monsters()
-        return jsonify({"message": "Enhanced monsters imported successfully!"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/reset-db-with-actions', methods=['POST'])
-def reset_database_with_actions():
-    """Reset database with new action columns - REMOVE AFTER USE"""
-    try:
-        print("Dropping all tables...")
-        db.drop_all()
-        print("Creating all tables with new schema...")
-        db.create_all()
-        print("Database reset complete with action columns!")
-        return jsonify({"message": "Database reset with action columns successfully!"})
-    except Exception as e:
-        print(f"Error resetting database: {e}")
-        return jsonify({"error": str(e)}), 500
-    
-@app.route('/api/import-batch-fixed/<int:start>/<int:end>', methods=['POST'])
-def import_monster_batch_fixed(start, end):
-    """Import monsters in batches with fixed error handling"""
-    try:
-        import requests
-        import time
-        import json
-        from import_monsters_with_actions import create_monster_with_actions, update_monster_with_actions
-        
-        # Get monster list
-        response = requests.get("https://www.dnd5eapi.co/api/monsters")
-        monster_list = response.json()
-        
-        batch = monster_list['results'][start:end]
-        results = []
-        
-        for monster_ref in batch:
-            try:
-                # Get detailed monster data
-                monster_url = f"https://www.dnd5eapi.co{monster_ref['url']}"
-                monster_response = requests.get(monster_url)
-                monster_data = monster_response.json()
-                
-                # Check if exists
-                existing = Character.query.filter_by(
-                    name=monster_data['name'],
-                    character_type='Monster',
-                    is_official=True
-                ).first()
-                
-                if existing:
-                    update_monster_with_actions(existing, monster_data)
-                    results.append(f"✓ Updated {monster_data['name']}")
-                else:
-                    monster = create_monster_with_actions(monster_data)
-                    db.session.add(monster)
-                    results.append(f"✓ Created {monster_data['name']}")
-                
-                db.session.commit()
-                time.sleep(0.1)  # Be nice to API
-                
-            except Exception as e:
-                results.append(f"✗ Failed {monster_ref['name']}: {str(e)}")
-                db.session.rollback()
-        
-        return jsonify({
-            "results": results,
-            "processed": len(batch),
-            "success_count": len([r for r in results if r.startswith("✓")]),
-            "error_count": len([r for r in results if r.startswith("✗")])
+            "message": "Character removed from event!"
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        db.session.rollback()
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 # Main application entry point
 if __name__ == '__main__':
