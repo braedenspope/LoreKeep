@@ -141,6 +141,7 @@ const CharacterManager = ({ user }) => {
     if (attack_bonus !== undefined && attack_bonus !== null && !isNaN(attack_bonus)) {
       // This is an attack with explicit attack bonus - roll to hit
       const attackRoll = rollFromNotation('1d20');
+      const rollValue = attackRoll.rolls ? attackRoll.rolls[0] : attackRoll.total;
       const totalAttack = attackRoll.total + attack_bonus;
       
       let damageText = '';
@@ -160,7 +161,7 @@ const CharacterManager = ({ user }) => {
       setDiceRollResult({
         ...attackRoll,
         total: totalAttack,
-        formatted: `Attack Roll: 1d20+${attack_bonus} = ${attackRoll.roll}+${attack_bonus} = ${totalAttack}${damageText}`
+        formatted: `Attack Roll: 1d20+${attack_bonus} = ${rollValue}+${attack_bonus} = ${totalAttack}${damageText}`
       });
       setRollActionName(name);
     } else {
@@ -171,6 +172,7 @@ const CharacterManager = ({ user }) => {
       if (extractedBonus !== null) {
         // Found attack bonus in description
         const attackRoll = rollFromNotation('1d20');
+        const rollValue = attackRoll.rolls ? attackRoll.rolls[0] : attackRoll.total;
         const totalAttack = attackRoll.total + extractedBonus;
         
         // Try to extract damage from description
@@ -186,7 +188,7 @@ const CharacterManager = ({ user }) => {
         setDiceRollResult({
           ...attackRoll,
           total: totalAttack,
-          formatted: `Attack Roll: 1d20+${extractedBonus} = ${attackRoll.roll}+${extractedBonus} = ${totalAttack}${damageText}`
+          formatted: `Attack Roll: 1d20+${extractedBonus} = ${rollValue}+${extractedBonus} = ${totalAttack}${damageText}`
         });
         setRollActionName(name);
       } else {
