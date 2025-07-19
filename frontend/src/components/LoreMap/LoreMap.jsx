@@ -306,104 +306,104 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   };
 
   // FIXED: Calculate connection points at edges of events with proper viewport scaling
+  // Calculate connection points using proper rectangle intersection
   const getConnectionPoints = (fromEvent, toEvent) => {
     const EVENT_WIDTH = 150;
-    const EVENT_HEIGHT = 80; // Approximate event node height including padding
+    const EVENT_HEIGHT = 80;
     
-    // Get world coordinates of event centers
-    const fromCenterX = fromEvent.position.x + EVENT_WIDTH / 2;
-    const fromCenterY = fromEvent.position.y + EVENT_HEIGHT / 2;
-    const toCenterX = toEvent.position.x + EVENT_WIDTH / 2;
-    const toCenterY = toEvent.position.y + EVENT_HEIGHT / 2;
+    // Define rectangles for both events
+    const fromRect = {
+      left: fromEvent.position.x,
+      top: fromEvent.position.y,
+      right: fromEvent.position.x + EVENT_WIDTH,
+      bottom: fromEvent.position.y + EVENT_HEIGHT,
+      centerX: fromEvent.position.x + EVENT_WIDTH / 2,
+      centerY: fromEvent.position.y + EVENT_HEIGHT / 2
+    };
     
-    // Calculate direction vector
-    const dx = toCenterX - fromCenterX;
-    const dy = toCenterY - fromCenterY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const toRect = {
+      left: toEvent.position.x,
+      top: toEvent.position.y,
+      right: toEvent.position.x + EVENT_WIDTH,
+      bottom: toEvent.position.y + EVENT_HEIGHT,
+      centerX: toEvent.position.x + EVENT_WIDTH / 2,
+      centerY: toEvent.position.y + EVENT_HEIGHT / 2
+    };
     
-    // Avoid division by zero
-    if (distance === 0) {
+    // Calculate direction from center to center
+    const dx = toRect.centerX - fromRect.centerX;
+    const dy = toRect.centerY - fromRect.centerY;
+    
+    if (dx === 0 && dy === 0) {
       return {
-        startX: fromCenterX,
-        startY: fromCenterY,
-        endX: toCenterX,
-        endY: toCenterY
+        startX: fromRect.centerX,
+        startY: fromRect.centerY,
+        endX: toRect.centerX,
+        endY: toRect.centerY
       };
     }
     
-    // Normalize direction vector
-    const unitX = dx / distance;
-    const unitY = dy / distance;
-    
-    // Calculate connection points more precisely based on actual event boundaries
-    const halfWidth = EVENT_WIDTH / 2;
-    const halfHeight = EVENT_HEIGHT / 2;
-    
-    // For the FROM event, find where the line from center to target intersects the event boundary
+    // Find intersection with FROM rectangle
     let startX, startY;
     
-    // Calculate the intersection with the event rectangle
-    const fromLeft = fromEvent.position.x;
-    const fromRight = fromEvent.position.x + EVENT_WIDTH;
-    const fromTop = fromEvent.position.y;
-    const fromBottom = fromEvent.position.y + EVENT_HEIGHT;
+    // Calculate intersection with rectangle edges
+    const slope = dy / dx;
     
-    // Find intersection point on FROM event boundary
-    if (Math.abs(unitX) > Math.abs(unitY)) {
-      // More horizontal than vertical
-      if (unitX > 0) {
-        // Going right
-        startX = fromRight;
-        startY = fromCenterY;
-      } else {
-        // Going left
-        startX = fromLeft;
-        startY = fromCenterY;
+    if (dx > 0) { // Going right
+      startX = fromRect.right;
+      startY = fromRect.centerY + slope * (fromRect.right - fromRect.centerX);
+      // Clamp to rectangle bounds
+      if (startY < fromRect.top) {
+        startY = fromRect.top;
+        startX = fromRect.centerX + (fromRect.top - fromRect.centerY) / slope;
+      } else if (startY > fromRect.bottom) {
+        startY = fromRect.bottom;
+        startX = fromRect.centerX + (fromRect.bottom - fromRect.centerY) / slope;
       }
-    } else {
-      // More vertical than horizontal
-      if (unitY > 0) {
-        // Going down
-        startX = fromCenterX;
-        startY = fromBottom;
-      } else {
-        // Going up
-        startX = fromCenterX;
-        startY = fromTop;
+    } else if (dx < 0) { // Going left
+      startX = fromRect.left;
+      startY = fromRect.centerY + slope * (fromRect.left - fromRect.centerX);
+      // Clamp to rectangle bounds
+      if (startY < fromRect.top) {
+        startY = fromRect.top;
+        startX = fromRect.centerX + (fromRect.top - fromRect.centerY) / slope;
+      } else if (startY > fromRect.bottom) {
+        startY = fromRect.bottom;
+        startX = fromRect.centerX + (fromRect.bottom - fromRect.centerY) / slope;
       }
+    } else { // dx === 0, purely vertical
+      startX = fromRect.centerX;
+      startY = dy > 0 ? fromRect.bottom : fromRect.top;
     }
     
-    // For the TO event, find where the line intersects the target boundary
+    // Find intersection with TO rectangle
     let endX, endY;
     
-    const toLeft = toEvent.position.x;
-    const toRight = toEvent.position.x + EVENT_WIDTH;
-    const toTop = toEvent.position.y;
-    const toBottom = toEvent.position.y + EVENT_HEIGHT;
-    
-    // Find intersection point on TO event boundary (opposite direction)
-    if (Math.abs(unitX) > Math.abs(unitY)) {
-      // More horizontal than vertical
-      if (unitX > 0) {
-        // Coming from left
-        endX = toLeft;
-        endY = toCenterY;
-      } else {
-        // Coming from right
-        endX = toRight;
-        endY = toCenterY;
+    if (dx > 0) { // Coming from left
+      endX = toRect.left;
+      endY = toRect.centerY - slope * (toRect.centerX - toRect.left);
+      // Clamp to rectangle bounds
+      if (endY < toRect.top) {
+        endY = toRect.top;
+        endX = toRect.centerX - (toRect.centerY - toRect.top) / slope;
+      } else if (endY > toRect.bottom) {
+        endY = toRect.bottom;
+        endX = toRect.centerX - (toRect.centerY - toRect.bottom) / slope;
       }
-    } else {
-      // More vertical than horizontal
-      if (unitY > 0) {
-        // Coming from above
-        endX = toCenterX;
-        endY = toTop;
-      } else {
-        // Coming from below
-        endX = toCenterX;
-        endY = toBottom;
+    } else if (dx < 0) { // Coming from right
+      endX = toRect.right;
+      endY = toRect.centerY - slope * (toRect.centerX - toRect.right);
+      // Clamp to rectangle bounds
+      if (endY < toRect.top) {
+        endY = toRect.top;
+        endX = toRect.centerX - (toRect.centerY - toRect.top) / slope;
+      } else if (endY > toRect.bottom) {
+        endY = toRect.bottom;
+        endX = toRect.centerX - (toRect.centerY - toRect.bottom) / slope;
       }
+    } else { // dx === 0, purely vertical
+      endX = toRect.centerX;
+      endY = dy > 0 ? toRect.top : toRect.bottom;
     }
     
     return { startX, startY, endX, endY };
