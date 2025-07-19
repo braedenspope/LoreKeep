@@ -305,62 +305,76 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-  // Simplified edge-to-edge connection calculation
+  // Fixed edge-to-edge connection with accurate event dimensions
   const getConnectionPoints = (fromEvent, toEvent) => {
+    // These dimensions should match the actual CSS dimensions of .event-node
     const EVENT_WIDTH = 150;
-    const EVENT_HEIGHT = 80;
+    const EVENT_HEIGHT = 100; // Increased to match actual rendered height with padding
     
-    // Get event centers
-    const fromCenterX = fromEvent.position.x + EVENT_WIDTH / 2;
-    const fromCenterY = fromEvent.position.y + EVENT_HEIGHT / 2;
-    const toCenterX = toEvent.position.x + EVENT_WIDTH / 2;
-    const toCenterY = toEvent.position.y + EVENT_HEIGHT / 2;
+    // Get event bounds
+    const fromBounds = {
+      left: fromEvent.position.x,
+      top: fromEvent.position.y,
+      right: fromEvent.position.x + EVENT_WIDTH,
+      bottom: fromEvent.position.y + EVENT_HEIGHT,
+      centerX: fromEvent.position.x + EVENT_WIDTH / 2,
+      centerY: fromEvent.position.y + EVENT_HEIGHT / 2
+    };
+    
+    const toBounds = {
+      left: toEvent.position.x,
+      top: toEvent.position.y,
+      right: toEvent.position.x + EVENT_WIDTH,
+      bottom: toEvent.position.y + EVENT_HEIGHT,
+      centerX: toEvent.position.x + EVENT_WIDTH / 2,
+      centerY: toEvent.position.y + EVENT_HEIGHT / 2
+    };
     
     // Calculate direction
-    const dx = toCenterX - fromCenterX;
-    const dy = toCenterY - fromCenterY;
+    const dx = toBounds.centerX - fromBounds.centerX;
+    const dy = toBounds.centerY - fromBounds.centerY;
     
     if (dx === 0 && dy === 0) {
       return {
-        startX: fromCenterX,
-        startY: fromCenterY,
-        endX: toCenterX,
-        endY: toCenterY
+        startX: fromBounds.centerX,
+        startY: fromBounds.centerY,
+        endX: toBounds.centerX,
+        endY: toBounds.centerY
       };
     }
     
-    // Determine which edge to use based on the larger component of the direction
+    // Determine connection points based on dominant direction
     let startX, startY, endX, endY;
     
     if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal connection dominates
+      // More horizontal than vertical
       if (dx > 0) {
-        // Going left to right
-        startX = fromEvent.position.x + EVENT_WIDTH;  // Right edge of FROM
-        startY = fromCenterY;
-        endX = toEvent.position.x;                    // Left edge of TO
-        endY = toCenterY;
+        // Left to right connection
+        startX = fromBounds.right;
+        startY = fromBounds.centerY;
+        endX = toBounds.left;
+        endY = toBounds.centerY;
       } else {
-        // Going right to left
-        startX = fromEvent.position.x;                // Left edge of FROM
-        startY = fromCenterY;
-        endX = toEvent.position.x + EVENT_WIDTH;      // Right edge of TO
-        endY = toCenterY;
+        // Right to left connection
+        startX = fromBounds.left;
+        startY = fromBounds.centerY;
+        endX = toBounds.right;
+        endY = toBounds.centerY;
       }
     } else {
-      // Vertical connection dominates
+      // More vertical than horizontal
       if (dy > 0) {
-        // Going top to bottom
-        startX = fromCenterX;
-        startY = fromEvent.position.y + EVENT_HEIGHT; // Bottom edge of FROM
-        endX = toCenterX;
-        endY = toEvent.position.y;                    // Top edge of TO
+        // Top to bottom connection
+        startX = fromBounds.centerX;
+        startY = fromBounds.bottom;
+        endX = toBounds.centerX;
+        endY = toBounds.top;
       } else {
-        // Going bottom to top
-        startX = fromCenterX;
-        startY = fromEvent.position.y;                // Top edge of FROM
-        endX = toCenterX;
-        endY = toEvent.position.y + EVENT_HEIGHT;     // Bottom edge of TO
+        // Bottom to top connection
+        startX = fromBounds.centerX;
+        startY = fromBounds.top;
+        endX = toBounds.centerX;
+        endY = toBounds.bottom;
       }
     }
     
