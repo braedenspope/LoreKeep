@@ -305,7 +305,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-  // FIXED: Calculate connection points at edges of events with proper viewport scaling
   // Calculate connection points using proper rectangle intersection
   const getConnectionPoints = (fromEvent, toEvent) => {
     const EVENT_WIDTH = 150;
@@ -343,67 +342,122 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       };
     }
     
-    // Find intersection with FROM rectangle
+    // Find intersection with FROM rectangle using proper line-rectangle intersection
     let startX, startY;
     
-    // Calculate intersection with rectangle edges
-    const slope = dy / dx;
-    
-    if (dx > 0) { // Going right
-      startX = fromRect.right;
-      startY = fromRect.centerY + slope * (fromRect.right - fromRect.centerX);
-      // Clamp to rectangle bounds
-      if (startY < fromRect.top) {
-        startY = fromRect.top;
-        startX = fromRect.centerX + (fromRect.top - fromRect.centerY) / slope;
-      } else if (startY > fromRect.bottom) {
-        startY = fromRect.bottom;
-        startX = fromRect.centerX + (fromRect.bottom - fromRect.centerY) / slope;
-      }
-    } else if (dx < 0) { // Going left
-      startX = fromRect.left;
-      startY = fromRect.centerY + slope * (fromRect.left - fromRect.centerX);
-      // Clamp to rectangle bounds
-      if (startY < fromRect.top) {
-        startY = fromRect.top;
-        startX = fromRect.centerX + (fromRect.top - fromRect.centerY) / slope;
-      } else if (startY > fromRect.bottom) {
-        startY = fromRect.bottom;
-        startX = fromRect.centerX + (fromRect.bottom - fromRect.centerY) / slope;
-      }
-    } else { // dx === 0, purely vertical
+    if (dx === 0) {
+      // Purely vertical line
       startX = fromRect.centerX;
       startY = dy > 0 ? fromRect.bottom : fromRect.top;
+    } else if (dy === 0) {
+      // Purely horizontal line
+      startY = fromRect.centerY;
+      startX = dx > 0 ? fromRect.right : fromRect.left;
+    } else {
+      // Calculate intersections with all four edges and pick the correct one
+      const slope = dy / dx;
+      const intersections = [];
+      
+      // Check intersection with right edge
+      if (dx > 0) {
+        const y = fromRect.centerY + slope * (fromRect.right - fromRect.centerX);
+        if (y >= fromRect.top && y <= fromRect.bottom) {
+          intersections.push({ x: fromRect.right, y: y, edge: 'right' });
+        }
+      }
+      
+      // Check intersection with left edge
+      if (dx < 0) {
+        const y = fromRect.centerY + slope * (fromRect.left - fromRect.centerX);
+        if (y >= fromRect.top && y <= fromRect.bottom) {
+          intersections.push({ x: fromRect.left, y: y, edge: 'left' });
+        }
+      }
+      
+      // Check intersection with bottom edge
+      if (dy > 0) {
+        const x = fromRect.centerX + (fromRect.bottom - fromRect.centerY) / slope;
+        if (x >= fromRect.left && x <= fromRect.right) {
+          intersections.push({ x: x, y: fromRect.bottom, edge: 'bottom' });
+        }
+      }
+      
+      // Check intersection with top edge
+      if (dy < 0) {
+        const x = fromRect.centerX + (fromRect.top - fromRect.centerY) / slope;
+        if (x >= fromRect.left && x <= fromRect.right) {
+          intersections.push({ x: x, y: fromRect.top, edge: 'top' });
+        }
+      }
+      
+      // Use the first valid intersection (there should be exactly one)
+      if (intersections.length > 0) {
+        startX = intersections[0].x;
+        startY = intersections[0].y;
+      } else {
+        // Fallback to center if no intersection found
+        startX = fromRect.centerX;
+        startY = fromRect.centerY;
+      }
     }
     
-    // Find intersection with TO rectangle
+    // Find intersection with TO rectangle using the same method
     let endX, endY;
     
-    if (dx > 0) { // Coming from left
-      endX = toRect.left;
-      endY = toRect.centerY - slope * (toRect.centerX - toRect.left);
-      // Clamp to rectangle bounds
-      if (endY < toRect.top) {
-        endY = toRect.top;
-        endX = toRect.centerX - (toRect.centerY - toRect.top) / slope;
-      } else if (endY > toRect.bottom) {
-        endY = toRect.bottom;
-        endX = toRect.centerX - (toRect.centerY - toRect.bottom) / slope;
-      }
-    } else if (dx < 0) { // Coming from right
-      endX = toRect.right;
-      endY = toRect.centerY - slope * (toRect.centerX - toRect.right);
-      // Clamp to rectangle bounds
-      if (endY < toRect.top) {
-        endY = toRect.top;
-        endX = toRect.centerX - (toRect.centerY - toRect.top) / slope;
-      } else if (endY > toRect.bottom) {
-        endY = toRect.bottom;
-        endX = toRect.centerX - (toRect.centerY - toRect.bottom) / slope;
-      }
-    } else { // dx === 0, purely vertical
+    if (dx === 0) {
+      // Purely vertical line
       endX = toRect.centerX;
       endY = dy > 0 ? toRect.top : toRect.bottom;
+    } else if (dy === 0) {
+      // Purely horizontal line
+      endY = toRect.centerY;
+      endX = dx > 0 ? toRect.left : toRect.right;
+    } else {
+      // Calculate intersections with all four edges and pick the correct one
+      const slope = dy / dx;
+      const intersections = [];
+      
+      // Check intersection with left edge (coming from right)
+      if (dx > 0) {
+        const y = toRect.centerY - slope * (toRect.centerX - toRect.left);
+        if (y >= toRect.top && y <= toRect.bottom) {
+          intersections.push({ x: toRect.left, y: y, edge: 'left' });
+        }
+      }
+      
+      // Check intersection with right edge (coming from left)
+      if (dx < 0) {
+        const y = toRect.centerY - slope * (toRect.centerX - toRect.right);
+        if (y >= toRect.top && y <= toRect.bottom) {
+          intersections.push({ x: toRect.right, y: y, edge: 'right' });
+        }
+      }
+      
+      // Check intersection with top edge (coming from below)
+      if (dy > 0) {
+        const x = toRect.centerX - (toRect.centerY - toRect.top) / slope;
+        if (x >= toRect.left && x <= toRect.right) {
+          intersections.push({ x: x, y: toRect.top, edge: 'top' });
+        }
+      }
+      
+      // Check intersection with bottom edge (coming from above)
+      if (dy < 0) {
+        const x = toRect.centerX - (toRect.centerY - toRect.bottom) / slope;
+        if (x >= toRect.left && x <= toRect.right) {
+          intersections.push({ x: x, y: toRect.bottom, edge: 'bottom' });
+        }
+      }
+      
+      // Use the first valid intersection
+      if (intersections.length > 0) {
+        endX = intersections[0].x;
+        endY = intersections[0].y;
+      } else {
+        // Fallback to center if no intersection found
+        endX = toRect.centerX;
+        endY = toRect.centerY;
+      }
     }
     
     return { startX, startY, endX, endY };
