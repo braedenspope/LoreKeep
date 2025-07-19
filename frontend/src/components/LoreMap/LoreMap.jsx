@@ -1,4 +1,4 @@
-// LoreMap.jsx - Fixed character addition functionality
+// LoreMap.jsx - Fixed character addition functionality and edge-to-edge arrows
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
@@ -302,6 +302,126 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       x: containerRect.width / 2 - centerX * scale,
       y: containerRect.height / 2 - centerY * scale,
       scale: scale
+    });
+  };
+
+  // FIXED: Calculate connection points at edges of events
+  const getConnectionPoints = (fromEvent, toEvent) => {
+    const EVENT_WIDTH = 150;
+    const EVENT_HEIGHT = 80; // Approximate event node height including padding
+    
+    // Get centers of both events
+    const fromCenterX = fromEvent.position.x + EVENT_WIDTH / 2;
+    const fromCenterY = fromEvent.position.y + EVENT_HEIGHT / 2;
+    const toCenterX = toEvent.position.x + EVENT_WIDTH / 2;
+    const toCenterY = toEvent.position.y + EVENT_HEIGHT / 2;
+    
+    // Calculate direction vector
+    const dx = toCenterX - fromCenterX;
+    const dy = toCenterY - fromCenterY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Avoid division by zero
+    if (distance === 0) {
+      return {
+        startX: fromCenterX,
+        startY: fromCenterY,
+        endX: toCenterX,
+        endY: toCenterY
+      };
+    }
+    
+    // Normalize direction vector
+    const unitX = dx / distance;
+    const unitY = dy / distance;
+    
+    // Calculate start point (edge of from event)
+    let startX, startY;
+    if (Math.abs(unitX) > Math.abs(unitY)) {
+      // Horizontal connection - use left/right edges
+      if (unitX > 0) {
+        // Going right - start from right edge of from event
+        startX = fromEvent.position.x + EVENT_WIDTH;
+        startY = fromCenterY;
+      } else {
+        // Going left - start from left edge of from event
+        startX = fromEvent.position.x;
+        startY = fromCenterY;
+      }
+    } else {
+      // Vertical connection - use top/bottom edges
+      if (unitY > 0) {
+        // Going down - start from bottom edge of from event
+        startX = fromCenterX;
+        startY = fromEvent.position.y + EVENT_HEIGHT;
+      } else {
+        // Going up - start from top edge of from event
+        startX = fromCenterX;
+        startY = fromEvent.position.y;
+      }
+    }
+    
+    // Calculate end point (edge of to event)
+    let endX, endY;
+    if (Math.abs(unitX) > Math.abs(unitY)) {
+      // Horizontal connection - use left/right edges
+      if (unitX > 0) {
+        // Coming from left - end at left edge of to event
+        endX = toEvent.position.x;
+        endY = toCenterY;
+      } else {
+        // Coming from right - end at right edge of to event
+        endX = toEvent.position.x + EVENT_WIDTH;
+        endY = toCenterY;
+      }
+    } else {
+      // Vertical connection - use top/bottom edges
+      if (unitY > 0) {
+        // Coming from above - end at top edge of to event
+        endX = toCenterX;
+        endY = toEvent.position.y;
+      } else {
+        // Coming from below - end at bottom edge of to event
+        endX = toCenterX;
+        endY = toEvent.position.y + EVENT_HEIGHT;
+      }
+    }
+    
+    return { startX, startY, endX, endY };
+  };
+
+  // FIXED: Render connections between events with edge-to-edge arrows
+  const renderConnections = () => {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return null;
+
+    return connections.map((connection, index) => {
+      const fromEvent = events.find(e => e.id === connection.from);
+      const toEvent = events.find(e => e.id === connection.to);
+      
+      if (!fromEvent || !toEvent) return null;
+      
+      // Get edge-to-edge connection points
+      const { startX, startY, endX, endY } = getConnectionPoints(fromEvent, toEvent);
+      
+      // Convert to screen coordinates
+      const fromScreenX = startX * viewport.scale + viewport.x;
+      const fromScreenY = startY * viewport.scale + viewport.y;
+      const toScreenX = endX * viewport.scale + viewport.x;
+      const toScreenY = endY * viewport.scale + viewport.y;
+      
+      return (
+        <line
+          key={index}
+          x1={fromScreenX}
+          y1={fromScreenY}
+          x2={toScreenX}
+          y2={toScreenY}
+          stroke={connectionStart && connectionStart.id === fromEvent.id ? "#3498db" : "#8b4513"}
+          strokeWidth="3"
+          markerEnd="url(#arrowhead)"
+        />
+      );
     });
   };
 
@@ -715,38 +835,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     ));
     
     setSelectedEvent(null);
-  };
-
-  // Render connections between events
-  const renderConnections = () => {
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    if (!containerRect) return null;
-
-    return connections.map((connection, index) => {
-      const fromEvent = events.find(e => e.id === connection.from);
-      const toEvent = events.find(e => e.id === connection.to);
-      
-      if (!fromEvent || !toEvent) return null;
-      
-      // Calculate screen positions for connection endpoints
-      const fromScreenX = (fromEvent.position.x + 75) * viewport.scale + viewport.x;
-      const fromScreenY = (fromEvent.position.y + 25) * viewport.scale + viewport.y;
-      const toScreenX = (toEvent.position.x + 75) * viewport.scale + viewport.x;
-      const toScreenY = (toEvent.position.y + 25) * viewport.scale + viewport.y;
-      
-      return (
-        <line
-          key={index}
-          x1={fromScreenX}
-          y1={fromScreenY}
-          x2={toScreenX}
-          y2={toScreenY}
-          stroke={connectionStart && connectionStart.id === fromEvent.id ? "#3498db" : "#8b4513"}
-          strokeWidth="2"
-          markerEnd="url(#arrowhead)"
-        />
-      );
-    });
   };
 
   return (
