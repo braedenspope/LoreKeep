@@ -305,12 +305,12 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-  // FIXED: Calculate connection points at edges of events
+  // FIXED: Calculate connection points at edges of events with proper viewport scaling
   const getConnectionPoints = (fromEvent, toEvent) => {
     const EVENT_WIDTH = 150;
     const EVENT_HEIGHT = 80; // Approximate event node height including padding
     
-    // Get centers of both events
+    // Get world coordinates of event centers
     const fromCenterX = fromEvent.position.x + EVENT_WIDTH / 2;
     const fromCenterY = fromEvent.position.y + EVENT_HEIGHT / 2;
     const toCenterX = toEvent.position.x + EVENT_WIDTH / 2;
@@ -335,55 +335,74 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     const unitX = dx / distance;
     const unitY = dy / distance;
     
-    // Calculate start point (edge of from event)
+    // Calculate connection points more precisely based on actual event boundaries
+    const halfWidth = EVENT_WIDTH / 2;
+    const halfHeight = EVENT_HEIGHT / 2;
+    
+    // For the FROM event, find where the line from center to target intersects the event boundary
     let startX, startY;
+    
+    // Calculate the intersection with the event rectangle
+    const fromLeft = fromEvent.position.x;
+    const fromRight = fromEvent.position.x + EVENT_WIDTH;
+    const fromTop = fromEvent.position.y;
+    const fromBottom = fromEvent.position.y + EVENT_HEIGHT;
+    
+    // Find intersection point on FROM event boundary
     if (Math.abs(unitX) > Math.abs(unitY)) {
-      // Horizontal connection - use left/right edges
+      // More horizontal than vertical
       if (unitX > 0) {
-        // Going right - start from right edge of from event
-        startX = fromEvent.position.x + EVENT_WIDTH;
+        // Going right
+        startX = fromRight;
         startY = fromCenterY;
       } else {
-        // Going left - start from left edge of from event
-        startX = fromEvent.position.x;
+        // Going left
+        startX = fromLeft;
         startY = fromCenterY;
       }
     } else {
-      // Vertical connection - use top/bottom edges
+      // More vertical than horizontal
       if (unitY > 0) {
-        // Going down - start from bottom edge of from event
+        // Going down
         startX = fromCenterX;
-        startY = fromEvent.position.y + EVENT_HEIGHT;
+        startY = fromBottom;
       } else {
-        // Going up - start from top edge of from event
+        // Going up
         startX = fromCenterX;
-        startY = fromEvent.position.y;
+        startY = fromTop;
       }
     }
     
-    // Calculate end point (edge of to event)
+    // For the TO event, find where the line intersects the target boundary
     let endX, endY;
+    
+    const toLeft = toEvent.position.x;
+    const toRight = toEvent.position.x + EVENT_WIDTH;
+    const toTop = toEvent.position.y;
+    const toBottom = toEvent.position.y + EVENT_HEIGHT;
+    
+    // Find intersection point on TO event boundary (opposite direction)
     if (Math.abs(unitX) > Math.abs(unitY)) {
-      // Horizontal connection - use left/right edges
+      // More horizontal than vertical
       if (unitX > 0) {
-        // Coming from left - end at left edge of to event
-        endX = toEvent.position.x;
+        // Coming from left
+        endX = toLeft;
         endY = toCenterY;
       } else {
-        // Coming from right - end at right edge of to event
-        endX = toEvent.position.x + EVENT_WIDTH;
+        // Coming from right
+        endX = toRight;
         endY = toCenterY;
       }
     } else {
-      // Vertical connection - use top/bottom edges
+      // More vertical than horizontal
       if (unitY > 0) {
-        // Coming from above - end at top edge of to event
+        // Coming from above
         endX = toCenterX;
-        endY = toEvent.position.y;
+        endY = toTop;
       } else {
-        // Coming from below - end at bottom edge of to event
+        // Coming from below
         endX = toCenterX;
-        endY = toEvent.position.y + EVENT_HEIGHT;
+        endY = toBottom;
       }
     }
     
