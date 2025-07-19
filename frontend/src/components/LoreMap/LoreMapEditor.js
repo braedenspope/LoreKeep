@@ -192,12 +192,21 @@ const LoreMapEditor = ({ user }) => {
   // Simple export for basic map data
   const handleBasicExport = () => {
     try {
+      // Validate that we have a lore map to export
+      if (!loreMap) {
+        throw new Error('No campaign data to export');
+      }
+      
       const dataStr = JSON.stringify(loreMap, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
       
+      // Safe filename creation with fallback
+      const safeTitle = (loreMap?.title || 'Untitled_Campaign').replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+      const filename = `${safeTitle}_map.json`;
+      
       const exportLink = document.createElement('a');
       exportLink.setAttribute('href', dataUri);
-      exportLink.setAttribute('download', `${loreMap.title.replace(/\s+/g, '_')}_map.json`);
+      exportLink.setAttribute('download', filename);
       document.body.appendChild(exportLink);
       exportLink.click();
       document.body.removeChild(exportLink);
@@ -212,6 +221,11 @@ const LoreMapEditor = ({ user }) => {
   const handleCompleteExport = async () => {
     try {
       setExporting(true);
+      
+      // Validate that we have a lore map to export
+      if (!loreMap) {
+        throw new Error('No campaign data to export');
+      }
       
       // Fetch all related data
       const [charactersResponse] = await Promise.all([
@@ -336,9 +350,13 @@ const LoreMapEditor = ({ user }) => {
       const dataStr = JSON.stringify(exportData, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
       
+      // Safe filename creation with fallback
+      const safeTitle = (loreMap?.title || 'Untitled_Campaign').replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+      const filename = `${safeTitle}_complete_export.json`;
+      
       const exportLink = document.createElement('a');
       exportLink.setAttribute('href', dataUri);
-      exportLink.setAttribute('download', `${loreMap.title.replace(/\s+/g, '_')}_complete_export.json`);
+      exportLink.setAttribute('download', filename);
       document.body.appendChild(exportLink);
       exportLink.click();
       document.body.removeChild(exportLink);
