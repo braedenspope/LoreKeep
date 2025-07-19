@@ -435,14 +435,16 @@
   .legendary-action-item,
   .reaction-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* Changed from center to flex-start for better text alignment */
     justify-content: space-between;
     background-color: #f8f5e9;
     border: 1px solid #d5b78a;
     border-radius: 4px;
     padding: 12px 15px;
     position: relative;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow text to display fully */
+    min-height: 60px; /* Ensure minimum height for content */
+    gap: 10px; /* Add gap between elements */
   }
   
   .action-item::after,
@@ -467,10 +469,13 @@
   .reaction-name {
     font-weight: 600;
     min-width: 120px;
+    max-width: 150px; /* Prevent names from taking too much space */
     color: #5e2612;
     font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
     position: relative;
     z-index: 1;
+    flex-shrink: 0; /* Prevent shrinking */
+    font-size: 14px; /* Slightly smaller font for better fit */
   }
   
   .action-description,
@@ -479,11 +484,15 @@
   .reaction-description {
     flex-grow: 1;
     color: #3e2723;
-    font-size: 14px;
-    font-style: italic;
+    font-size: 13px; /* Slightly smaller for better fit */
+    line-height: 1.4; /* Better line spacing */
     position: relative;
     z-index: 1;
     margin: 0 10px;
+    word-wrap: break-word; /* Allow long words to break */
+    overflow-wrap: break-word; /* Better word wrapping */
+    white-space: normal; /* Allow text to wrap */
+    max-width: none; /* Remove any width constraints */
   }
   
   /* Roll button only appears for attack actions */
@@ -494,15 +503,19 @@
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px; /* Slightly smaller font */
     font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
     text-transform: uppercase;
     letter-spacing: 1px;
     transition: all 0.2s;
     position: relative;
     z-index: 1;
-    min-width: 100px;
+    min-width: 90px; /* Slightly smaller minimum width */
+    max-width: 100px; /* Prevent button from getting too wide */
     white-space: nowrap;
+    flex-shrink: 0; /* Prevent button from shrinking */
+    align-self: flex-start; /* Align to top of container */
+    margin-top: 2px; /* Small offset for visual alignment */
   }
   
   .roll-btn:hover {
@@ -795,6 +808,42 @@
     .character-filters button {
       margin-bottom: 0;
       min-width: auto;
+    }
+    
+    /* Better action item layout on mobile */
+    .action-item,
+    .ability-item,
+    .legendary-action-item,
+    .reaction-item {
+      flex-direction: column; /* Stack elements vertically on mobile */
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .action-name,
+    .ability-name,
+    .legendary-action-name,
+    .reaction-name {
+      min-width: auto;
+      max-width: none;
+      font-size: 15px; /* Slightly larger on mobile */
+      margin-bottom: 5px;
+    }
+    
+    .action-description,
+    .ability-description,
+    .legendary-action-description,
+    .reaction-description {
+      margin: 0;
+      font-size: 14px; /* Larger text on mobile */
+      line-height: 1.5;
+    }
+    
+    .roll-btn {
+      align-self: flex-end; /* Position button to the right */
+      margin-top: 0;
+      min-width: 80px;
+      font-size: 10px;
     }
   }
   
