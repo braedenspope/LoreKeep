@@ -43,7 +43,7 @@ const CharacterManager = ({ user }) => {
     // If it's a string, try to parse it
     if (typeof actionsData === 'string') {
       // Check for common invalid values
-      if (actionsData === '[object Object]' || actionsData === 'undefined' || actionsData === 'null') {
+      if (actionsData === '[object Object]' || actionsData === 'undefined' || actionsData === 'null' || actionsData.trim() === '') {
         return [];
       }
       
@@ -63,7 +63,7 @@ const CharacterManager = ({ user }) => {
     
     return [];
   };
-  
+    
   // Fetch characters from the backend
   const fetchCharacters = useCallback(async () => {
     try {
@@ -219,8 +219,10 @@ const CharacterManager = ({ user }) => {
   };
 
   // Create a new character - FIXED VERSION
-const handleCreate = async () => {
+  const handleCreate = async () => {
   try {
+    console.log('Creating character with form data:', formData); // Debug log
+    
     const response = await fetch(`${config.apiUrl}/api/characters`, {
       method: 'POST',
       headers: {
@@ -231,7 +233,7 @@ const handleCreate = async () => {
         name: formData.name,
         character_type: formData.character_type,
         description: formData.description,
-        // Send individual stat fields instead of JSON string
+        // Send individual stat fields
         strength: formData.stats.strength,
         dexterity: formData.stats.dexterity,
         constitution: formData.stats.constitution,
@@ -240,27 +242,34 @@ const handleCreate = async () => {
         charisma: formData.stats.charisma,
         armor_class: formData.stats.armorClass,
         hit_points: formData.stats.hitPoints,
-        actions: JSON.stringify(formData.stats.actions) // Store actions as JSON string
+        // Make sure actions are properly stringified
+        actions: formData.stats.actions && formData.stats.actions.length > 0 
+          ? JSON.stringify(formData.stats.actions) 
+          : null
       })
     });
     
     if (!response.ok) {
-      throw new Error('Failed to create character');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create character');
     }
     
     const data = await response.json();
+    console.log('Character created successfully:', data); // Debug log
     
-    // Refresh the character list to get the newly created character with proper format
+    // Refresh the character list
     await fetchCharacters();
     
     setIsCreating(false);
     resetForm();
     
-    // Select the newly created character
-    const newCharacter = characters.find(char => char.id === data.id);
-    if (newCharacter) {
-      setSelectedCharacter(newCharacter);
-    }
+    // Find and select the newly created character
+    setTimeout(() => {
+      const newCharacter = characters.find(char => char.id === data.id);
+      if (newCharacter) {
+        setSelectedCharacter(newCharacter);
+      }
+    }, 100);
     
   } catch (err) {
     console.error('Failed to create character:', err);
@@ -268,11 +277,13 @@ const handleCreate = async () => {
   }
 };
 
-// Update existing character - FIXED VERSION
+// 4. FIXED handleUpdate function
 const handleUpdate = async () => {
   if (!selectedCharacter) return;
   
   try {
+    console.log('Updating character with form data:', formData); // Debug log
+    
     const response = await fetch(`${config.apiUrl}/api/characters/${selectedCharacter.id}`, {
       method: 'PUT',
       headers: {
@@ -283,7 +294,7 @@ const handleUpdate = async () => {
         name: formData.name,
         character_type: formData.character_type,
         description: formData.description,
-        // Send individual stat fields instead of JSON string
+        // Send individual stat fields
         strength: formData.stats.strength,
         dexterity: formData.stats.dexterity,
         constitution: formData.stats.constitution,
@@ -292,24 +303,33 @@ const handleUpdate = async () => {
         charisma: formData.stats.charisma,
         armor_class: formData.stats.armorClass,
         hit_points: formData.stats.hitPoints,
-        actions: JSON.stringify(formData.stats.actions) // Store actions as JSON string
+        // Make sure actions are properly stringified
+        actions: formData.stats.actions && formData.stats.actions.length > 0 
+          ? JSON.stringify(formData.stats.actions) 
+          : null
       })
     });
     
     if (!response.ok) {
-      throw new Error('Failed to update character');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update character');
     }
     
-    // Refresh the character list to get updated data
+    const data = await response.json();
+    console.log('Character updated successfully:', data); // Debug log
+    
+    // Refresh the character list
     await fetchCharacters();
     
     setIsEditing(false);
     
     // Find and select the updated character
-    const updatedCharacter = characters.find(char => char.id === selectedCharacter.id);
-    if (updatedCharacter) {
-      setSelectedCharacter(updatedCharacter);
-    }
+    setTimeout(() => {
+      const updatedCharacter = characters.find(char => char.id === selectedCharacter.id);
+      if (updatedCharacter) {
+        setSelectedCharacter(updatedCharacter);
+      }
+    }, 100);
     
   } catch (err) {
     console.error('Failed to update character:', err);
@@ -432,6 +452,8 @@ const handleUpdate = async () => {
   const handleEditClick = () => {
     if (!selectedCharacter) return;
     
+    console.log('Editing character:', selectedCharacter); // Debug log
+    
     // Handle both old format (stats as JSON string) and new format (individual columns)
     let stats;
     
@@ -439,6 +461,7 @@ const handleUpdate = async () => {
       // Old format - parse the JSON string
       try {
         stats = JSON.parse(selectedCharacter.stats);
+        console.log('Parsed stats from JSON string:', stats); // Debug log
       } catch (e) {
         console.warn('Could not parse stats JSON, using defaults:', e);
         stats = {
@@ -455,6 +478,9 @@ const handleUpdate = async () => {
       }
     } else {
       // New format - build stats object from individual columns
+      console.log('Building stats from individual columns'); // Debug log
+      console.log('Character actions field:', selectedCharacter.actions); // Debug log
+      
       stats = {
         strength: selectedCharacter.strength || 10,
         dexterity: selectedCharacter.dexterity || 10,
@@ -464,9 +490,11 @@ const handleUpdate = async () => {
         charisma: selectedCharacter.charisma || 10,
         armorClass: selectedCharacter.armor_class || 10,
         hitPoints: selectedCharacter.hit_points || 10,
-        actions: selectedCharacter.actions ? safeParseActions(selectedCharacter.actions) : []
+        actions: safeParseActions(selectedCharacter.actions)
       };
     }
+    
+    console.log('Final stats for editing:', stats); // Debug log
     
     setFormData({
       name: selectedCharacter.name,
@@ -692,234 +720,239 @@ const handleUpdate = async () => {
 
   // Helper function to render character stats with clickable dice rolling
   function renderCharacterStats() {
-    if (!selectedCharacter) return null;
-    
-    return (
-      <>
-        <div className="stats-grid">
-          <div 
-            className="stat-item clickable" 
-            onClick={() => handleAbilityRoll('Strength', selectedCharacter.strength || 10)}
-            title="Click to roll Strength check"
-          >
-            <span className="stat-label">STR</span>
-            <span className="stat-value">{selectedCharacter.strength || 10}</span>
-          </div>
-          <div 
-            className="stat-item clickable" 
-            onClick={() => handleAbilityRoll('Dexterity', selectedCharacter.dexterity || 10)}
-            title="Click to roll Dexterity check"
-          >
-            <span className="stat-label">DEX</span>
-            <span className="stat-value">{selectedCharacter.dexterity || 10}</span>
-          </div>
-          <div 
-            className="stat-item clickable" 
-            onClick={() => handleAbilityRoll('Constitution', selectedCharacter.constitution || 10)}
-            title="Click to roll Constitution check"
-          >
-            <span className="stat-label">CON</span>
-            <span className="stat-value">{selectedCharacter.constitution || 10}</span>
-          </div>
-          <div 
-            className="stat-item clickable" 
-            onClick={() => handleAbilityRoll('Intelligence', selectedCharacter.intelligence || 10)}
-            title="Click to roll Intelligence check"
-          >
-            <span className="stat-label">INT</span>
-            <span className="stat-value">{selectedCharacter.intelligence || 10}</span>
-          </div>
-          <div 
-            className="stat-item clickable" 
-            onClick={() => handleAbilityRoll('Wisdom', selectedCharacter.wisdom || 10)}
-            title="Click to roll Wisdom check"
-          >
-            <span className="stat-label">WIS</span>
-            <span className="stat-value">{selectedCharacter.wisdom || 10}</span>
-          </div>
-          <div 
-            className="stat-item clickable" 
-            onClick={() => handleAbilityRoll('Charisma', selectedCharacter.charisma || 10)}
-            title="Click to roll Charisma check"
-          >
-            <span className="stat-label">CHA</span>
-            <span className="stat-value">{selectedCharacter.charisma || 10}</span>
-          </div>
+  if (!selectedCharacter) return null;
+  
+  return (
+    <>
+      {/* Existing stats grid code... */}
+      <div className="stats-grid">
+        <div 
+          className="stat-item clickable" 
+          onClick={() => handleAbilityRoll('Strength', selectedCharacter.strength || 10)}
+          title="Click to roll Strength check"
+        >
+          <span className="stat-label">STR</span>
+          <span className="stat-value">{selectedCharacter.strength || 10}</span>
         </div>
-        
-        <div className="combat-stats">
+        <div 
+          className="stat-item clickable" 
+          onClick={() => handleAbilityRoll('Dexterity', selectedCharacter.dexterity || 10)}
+          title="Click to roll Dexterity check"
+        >
+          <span className="stat-label">DEX</span>
+          <span className="stat-value">{selectedCharacter.dexterity || 10}</span>
+        </div>
+        <div 
+          className="stat-item clickable" 
+          onClick={() => handleAbilityRoll('Constitution', selectedCharacter.constitution || 10)}
+          title="Click to roll Constitution check"
+        >
+          <span className="stat-label">CON</span>
+          <span className="stat-value">{selectedCharacter.constitution || 10}</span>
+        </div>
+        <div 
+          className="stat-item clickable" 
+          onClick={() => handleAbilityRoll('Intelligence', selectedCharacter.intelligence || 10)}
+          title="Click to roll Intelligence check"
+        >
+          <span className="stat-label">INT</span>
+          <span className="stat-value">{selectedCharacter.intelligence || 10}</span>
+        </div>
+        <div 
+          className="stat-item clickable" 
+          onClick={() => handleAbilityRoll('Wisdom', selectedCharacter.wisdom || 10)}
+          title="Click to roll Wisdom check"
+        >
+          <span className="stat-label">WIS</span>
+          <span className="stat-value">{selectedCharacter.wisdom || 10}</span>
+        </div>
+        <div 
+          className="stat-item clickable" 
+          onClick={() => handleAbilityRoll('Charisma', selectedCharacter.charisma || 10)}
+          title="Click to roll Charisma check"
+        >
+          <span className="stat-label">CHA</span>
+          <span className="stat-value">{selectedCharacter.charisma || 10}</span>
+        </div>
+      </div>
+      
+      <div className="combat-stats">
+        <div className="combat-stat">
+          <span className="stat-label">AC</span>
+          <span className="stat-value">{selectedCharacter.armor_class || 10}</span>
+        </div>
+        <div className="combat-stat">
+          <span className="stat-label">HP</span>
+          <span className="stat-value">{selectedCharacter.hit_points || 1}</span>
+        </div>
+        {selectedCharacter.challenge_rating && (
           <div className="combat-stat">
-            <span className="stat-label">AC</span>
-            <span className="stat-value">{selectedCharacter.armor_class || 10}</span>
+            <span className="stat-label">CR</span>
+            <span className="stat-value">{formatChallengeRating(selectedCharacter.challenge_rating)}</span>
           </div>
-          <div className="combat-stat">
-            <span className="stat-label">HP</span>
-            <span className="stat-value">{selectedCharacter.hit_points || 1}</span>
-          </div>
-          {selectedCharacter.challenge_rating && (
-            <div className="combat-stat">
-              <span className="stat-label">CR</span>
-              <span className="stat-value">{formatChallengeRating(selectedCharacter.challenge_rating)}</span>
+        )}
+      </div>
+
+      {/* Show additional monster info for official monsters */}
+      {selectedCharacter.is_official && selectedCharacter.character_type === 'Monster' && (
+        <div className="monster-info">
+          {selectedCharacter.creature_type && (
+            <div className="creature-info">
+              <strong>Type:</strong> {selectedCharacter.creature_type}
+            </div>
+          )}
+          {selectedCharacter.senses && (
+            <div className="creature-senses">
+              <strong>Senses:</strong> {selectedCharacter.senses}
+            </div>
+          )}
+          {selectedCharacter.languages && (
+            <div className="creature-languages">
+              <strong>Languages:</strong> {selectedCharacter.languages}
+            </div>
+          )}
+          {selectedCharacter.damage_resistances && (
+            <div className="creature-resistances">
+              <strong>Damage Resistances:</strong> {selectedCharacter.damage_resistances}
+            </div>
+          )}
+          {selectedCharacter.damage_immunities && (
+            <div className="creature-immunities">
+              <strong>Damage Immunities:</strong> {selectedCharacter.damage_immunities}
+            </div>
+          )}
+          {selectedCharacter.condition_immunities && (
+            <div className="creature-condition-immunities">
+              <strong>Condition Immunities:</strong> {selectedCharacter.condition_immunities}
             </div>
           )}
         </div>
+      )}
 
-        {/* Show additional monster info */}
-        {selectedCharacter.is_official && selectedCharacter.character_type === 'Monster' && (
-          <div className="monster-info">
-            {selectedCharacter.creature_type && (
-              <div className="creature-info">
-                <strong>Type:</strong> {selectedCharacter.creature_type}
+      {/* FIXED: Custom character actions - check actions field directly */}
+      {(() => {
+        console.log('Checking actions for character:', selectedCharacter.name);
+        console.log('Actions field:', selectedCharacter.actions);
+        
+        const actionsToShow = safeParseActions(selectedCharacter.actions);
+        console.log('Parsed actions:', actionsToShow);
+        
+        if (actionsToShow && actionsToShow.length > 0) {
+          return (
+            <div className="character-actions">
+              <h3>Actions</h3>
+              <div className="actions-list">
+                {actionsToShow.map((action, index) => (
+                  <div key={index} className="action-item">
+                    <div className="action-name">{action.name || 'Unnamed Action'}</div>
+                    <div className="action-description">{action.description || 'No description'}</div>
+                    {isAttackAction(action) && (
+                      <button 
+                        className="roll-btn"
+                        onClick={() => handleAttackActionRoll(action)}
+                        title="Roll this attack"
+                      >
+                        🎲 Roll Attack
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-            {selectedCharacter.senses && (
-              <div className="creature-senses">
-                <strong>Senses:</strong> {selectedCharacter.senses}
-              </div>
-            )}
-            {selectedCharacter.languages && (
-              <div className="creature-languages">
-                <strong>Languages:</strong> {selectedCharacter.languages}
-              </div>
-            )}
-            {selectedCharacter.damage_resistances && (
-              <div className="creature-resistances">
-                <strong>Damage Resistances:</strong> {selectedCharacter.damage_resistances}
-              </div>
-            )}
-            {selectedCharacter.damage_immunities && (
-              <div className="creature-immunities">
-                <strong>Damage Immunities:</strong> {selectedCharacter.damage_immunities}
-              </div>
-            )}
-            {selectedCharacter.condition_immunities && (
-              <div className="creature-condition-immunities">
-                <strong>Condition Immunities:</strong> {selectedCharacter.condition_immunities}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Monster Special Abilities */}
-        {selectedCharacter.special_abilities && (
-          <div className="character-special-abilities">
-            <h3>Special Abilities</h3>
-            <div className="abilities-list">
-              {safeParseActions(selectedCharacter.special_abilities).map((ability, index) => (
-                <div key={index} className="ability-item">
-                  <div className="ability-name">{ability.name || 'Unnamed Ability'}</div>
-                  <div className="ability-description">{ability.description || ability.desc || 'No description'}</div>
-                </div>
-              ))}
             </div>
-          </div>
-        )}
+          );
+        }
+        return null;
+      })()}
 
-        {/* Monster Actions with selective dice rolling */}
-        {selectedCharacter.actions && (
-          <div className="character-actions">
-            <h3>Actions</h3>
-            <div className="actions-list">
-              {safeParseActions(selectedCharacter.actions).map((action, index) => (
-                <div key={index} className="action-item">
-                  <div className="action-name">{action.name || 'Unnamed Action'}</div>
-                  <div className="action-description">{action.description || action.desc || 'No description'}</div>
-                  {isAttackAction(action) && (
-                    <button 
-                      className="roll-btn"
-                      onClick={() => handleAttackActionRoll(action)}
-                      title="Roll this attack"
-                    >
-                      🎲 Roll Attack
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Legendary Actions */}
-        {selectedCharacter.legendary_actions && (
-          <div className="character-legendary-actions">
-            <h3>Legendary Actions</h3>
-            <div className="legendary-actions-list">
-              {safeParseActions(selectedCharacter.legendary_actions).map((action, index) => (
-                <div key={index} className="legendary-action-item">
-                  <div className="legendary-action-name">{action.name || 'Unnamed Action'}</div>
-                  <div className="legendary-action-description">{action.description || action.desc || 'No description'}</div>
-                  {isAttackAction(action) && (
-                    <button 
-                      className="roll-btn"
-                      onClick={() => handleAttackActionRoll(action)}
-                      title="Roll this legendary attack"
-                    >
-                      🎲 Roll Attack
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reactions */}
-        {selectedCharacter.reactions && (
-          <div className="character-reactions">
-            <h3>Reactions</h3>
-            <div className="reactions-list">
-              {safeParseActions(selectedCharacter.reactions).map((reaction, index) => (
-                <div key={index} className="reaction-item">
-                  <div className="reaction-name">{reaction.name || 'Unnamed Reaction'}</div>
-                  <div className="reaction-description">{reaction.description || reaction.desc || 'No description'}</div>
-                  {isAttackAction(reaction) && (
-                    <button 
-                      className="roll-btn"
-                      onClick={() => handleAttackActionRoll(reaction)}
-                      title="Roll this reaction attack"
-                    >
-                      🎲 Roll Attack
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Legacy actions for user-created characters */}
-        {selectedCharacter.stats && typeof selectedCharacter.stats === 'string' && (() => {
-          try {
-            const stats = JSON.parse(selectedCharacter.stats);
-            return stats.actions && stats.actions.length > 0 && (
-              <div className="character-actions">
-                <h3>Actions</h3>
-                <div className="actions-list">
-                  {stats.actions.map((action, index) => (
-                    <div key={index} className="action-item">
-                      <div className="action-name">{action.name}</div>
-                      <div className="action-description">{action.description}</div>
-                      {isAttackAction(action) && (
-                        <button 
-                          className="roll-btn"
-                          onClick={() => handleAttackActionRoll(action)}
-                          title="Roll this attack"
-                        >
-                          🎲 Roll Attack
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+      {/* Official monster special abilities */}
+      {selectedCharacter.special_abilities && (
+        <div className="character-special-abilities">
+          <h3>Special Abilities</h3>
+          <div className="abilities-list">
+            {safeParseActions(selectedCharacter.special_abilities).map((ability, index) => (
+              <div key={index} className="ability-item">
+                <div className="ability-name">{ability.name || 'Unnamed Ability'}</div>
+                <div className="ability-description">{ability.description || ability.desc || 'No description'}</div>
               </div>
-            );
-          } catch (e) {
-            return null;
-          }
-        })()}
-      </>
-    );
-  }
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Official monster actions */}
+      {selectedCharacter.is_official && selectedCharacter.actions && (
+        <div className="character-actions">
+          <h3>Monster Actions</h3>
+          <div className="actions-list">
+            {safeParseActions(selectedCharacter.actions).map((action, index) => (
+              <div key={index} className="action-item">
+                <div className="action-name">{action.name || 'Unnamed Action'}</div>
+                <div className="action-description">{action.description || action.desc || 'No description'}</div>
+                {isAttackAction(action) && (
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleAttackActionRoll(action)}
+                    title="Roll this attack"
+                  >
+                    🎲 Roll Attack
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Legendary Actions */}
+      {selectedCharacter.legendary_actions && (
+        <div className="character-legendary-actions">
+          <h3>Legendary Actions</h3>
+          <div className="legendary-actions-list">
+            {safeParseActions(selectedCharacter.legendary_actions).map((action, index) => (
+              <div key={index} className="legendary-action-item">
+                <div className="legendary-action-name">{action.name || 'Unnamed Action'}</div>
+                <div className="legendary-action-description">{action.description || action.desc || 'No description'}</div>
+                {isAttackAction(action) && (
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleAttackActionRoll(action)}
+                    title="Roll this legendary attack"
+                  >
+                    🎲 Roll Attack
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reactions */}
+      {selectedCharacter.reactions && (
+        <div className="character-reactions">
+          <h3>Reactions</h3>
+          <div className="reactions-list">
+            {safeParseActions(selectedCharacter.reactions).map((reaction, index) => (
+              <div key={index} className="reaction-item">
+                <div className="reaction-name">{reaction.name || 'Unnamed Reaction'}</div>
+                <div className="reaction-description">{reaction.description || reaction.desc || 'No description'}</div>
+                {isAttackAction(reaction) && (
+                  <button 
+                    className="roll-btn"
+                    onClick={() => handleAttackActionRoll(reaction)}
+                    title="Roll this reaction attack"
+                  >
+                    🎲 Roll Attack
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
   // Main component render
   if (loading) {

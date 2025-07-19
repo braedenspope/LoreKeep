@@ -592,7 +592,7 @@ def get_characters():
         return jsonify({"error": "Not authenticated"}), 401
     
     try:
-        # FIXED: Show both user's characters AND official monsters
+        # Show both user's characters AND official monsters
         characters = Character.query.filter(
             db.or_(
                 Character.user_id == user_id,  # User's custom characters
@@ -624,7 +624,7 @@ def get_characters():
         
         result = []
         for char in characters:
-            result.append({
+            char_data = {
                 "id": char.id,
                 "name": char.name,
                 "character_type": char.character_type,
@@ -642,8 +642,10 @@ def get_characters():
                 "is_official": char.is_official or False,
                 "user_id": char.user_id,  # Will be None for official monsters
                 
-                # Safely parse action data with fallbacks
-                "actions": safe_parse_json(char.actions),
+                # IMPORTANT: Include the raw actions field for custom characters
+                "actions": char.actions,  # Keep this as raw string/data
+                
+                # Safely parse other action data with fallbacks for official monsters
                 "legendary_actions": safe_parse_json(char.legendary_actions),
                 "special_abilities": safe_parse_json(char.special_abilities),
                 "reactions": safe_parse_json(char.reactions),
@@ -653,7 +655,13 @@ def get_characters():
                 "condition_immunities": char.condition_immunities,
                 "senses": char.senses,
                 "languages": char.languages
-            })
+            }
+            
+            # Debug log for custom characters
+            if not char.is_official:
+                print(f"Custom character {char.name} (ID: {char.id}) actions: {char.actions}")
+            
+            result.append(char_data)
         
         return jsonify(result)
         
@@ -738,7 +746,9 @@ def create_character():
     data = request.json
     
     try:
-        # Simple approach - use only the new column format
+        print(f"Creating character with data: {data}")  # Debug log
+        
+        # Create character with individual stat fields
         new_character = Character(
             name=data.get('name', 'New Character'),
             character_type=data.get('character_type', 'NPC'),
@@ -753,6 +763,7 @@ def create_character():
             hit_points=data.get('hit_points', 1),
             challenge_rating=data.get('challenge_rating', '0'),
             creature_type=data.get('creature_type', 'humanoid'),
+            actions=data.get('actions'),  # Store actions as JSON string (can be None)
             is_official=data.get('is_official', False),
             user_id=user_id
         )
@@ -760,9 +771,26 @@ def create_character():
         db.session.add(new_character)
         db.session.commit()
         
+        print(f"Character created with ID: {new_character.id}, actions: {new_character.actions}")  # Debug log
+        
         return jsonify({
             "id": new_character.id,
             "name": new_character.name,
+            "character_type": new_character.character_type,
+            "description": new_character.description,
+            "strength": new_character.strength,
+            "dexterity": new_character.dexterity,
+            "constitution": new_character.constitution,
+            "intelligence": new_character.intelligence,
+            "wisdom": new_character.wisdom,
+            "charisma": new_character.charisma,
+            "armor_class": new_character.armor_class,
+            "hit_points": new_character.hit_points,
+            "challenge_rating": new_character.challenge_rating,
+            "creature_type": new_character.creature_type,
+            "actions": new_character.actions,
+            "is_official": new_character.is_official,
+            "user_id": new_character.user_id,
             "message": "Character created successfully!"
         }), 201
         
@@ -785,46 +813,51 @@ def update_character(id):
     data = request.json
     
     try:
-        # Handle both old and new format
-        if 'stats' in data and isinstance(data['stats'], (str, dict)):
-            # Old format
-            stats = data['stats']
-            if isinstance(stats, str):
-                stats = json.loads(stats)
-            
-            character.strength = stats.get('strength', character.strength)
-            character.dexterity = stats.get('dexterity', character.dexterity)
-            character.constitution = stats.get('constitution', character.constitution)
-            character.intelligence = stats.get('intelligence', character.intelligence)
-            character.wisdom = stats.get('wisdom', character.wisdom)
-            character.charisma = stats.get('charisma', character.charisma)
-            character.armor_class = stats.get('armorClass', character.armor_class)
-            character.hit_points = stats.get('hitPoints', character.hit_points)
-        else:
-            # New format - update all fields
-            character.strength = data.get('strength', character.strength)
-            character.dexterity = data.get('dexterity', character.dexterity)
-            character.constitution = data.get('constitution', character.constitution)
-            character.intelligence = data.get('intelligence', character.intelligence)
-            character.wisdom = data.get('wisdom', character.wisdom)
-            character.charisma = data.get('charisma', character.charisma)
-            character.armor_class = data.get('armor_class', character.armor_class)
-            character.hit_points = data.get('hit_points', character.hit_points)
-            character.creature_type = data.get('creature_type', character.creature_type)
-            character.challenge_rating = data.get('challenge_rating', character.challenge_rating)
+        print(f"Updating character {id} with data: {data}")  # Debug log
+        print(f"Actions in request: {data.get('actions')}")  # Debug log
         
-        # Update basic fields
+        # Update character fields
         character.name = data.get('name', character.name)
         character.character_type = data.get('character_type', character.character_type)
         character.description = data.get('description', character.description)
+        character.strength = data.get('strength', character.strength)
+        character.dexterity = data.get('dexterity', character.dexterity)
+        character.constitution = data.get('constitution', character.constitution)
+        character.intelligence = data.get('intelligence', character.intelligence)
+        character.wisdom = data.get('wisdom', character.wisdom)
+        character.charisma = data.get('charisma', character.charisma)
+        character.armor_class = data.get('armor_class', character.armor_class)
+        character.hit_points = data.get('hit_points', character.hit_points)
+        character.creature_type = data.get('creature_type', character.creature_type)
+        character.challenge_rating = data.get('challenge_rating', character.challenge_rating)
+        
+        # Update actions if provided (including setting to None if empty)
+        if 'actions' in data:
+            character.actions = data['actions']
+            print(f"Updated character actions to: {character.actions}")  # Debug log
         
         db.session.commit()
+        
+        print(f"Character {id} updated successfully, final actions: {character.actions}")  # Debug log
         
         return jsonify({
             "id": character.id,
             "name": character.name,
             "character_type": character.character_type,
             "description": character.description,
+            "strength": character.strength,
+            "dexterity": character.dexterity,
+            "constitution": character.constitution,
+            "intelligence": character.intelligence,
+            "wisdom": character.wisdom,
+            "charisma": character.charisma,
+            "armor_class": character.armor_class,
+            "hit_points": character.hit_points,
+            "challenge_rating": character.challenge_rating,
+            "creature_type": character.creature_type,
+            "actions": character.actions,
+            "is_official": character.is_official,
+            "user_id": character.user_id,
             "message": "Character updated successfully!"
         })
         
