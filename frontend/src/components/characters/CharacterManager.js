@@ -218,73 +218,104 @@ const CharacterManager = ({ user }) => {
     setRollActionName('');
   };
 
-  // Create a new character
-  const handleCreate = async () => {
-    try {
-      const response = await fetch(`${config.apiUrl}/api/characters`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: formData.name,
-          character_type: formData.character_type,
-          description: formData.description,
-          stats: JSON.stringify(formData.stats)
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create character');
-      }
-      
-      const data = await response.json();
-      setCharacters([...characters, data]);
-      setIsCreating(false);
-      resetForm();
-      
-    } catch (err) {
-      console.error('Failed to create character:', err);
-      setError('Failed to create character. Please try again.');
-    }
-  };
-  
-  // Update existing character
-  const handleUpdate = async () => {
-    if (!selectedCharacter) return;
+  // Create a new character - FIXED VERSION
+const handleCreate = async () => {
+  try {
+    const response = await fetch(`${config.apiUrl}/api/characters`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        name: formData.name,
+        character_type: formData.character_type,
+        description: formData.description,
+        // Send individual stat fields instead of JSON string
+        strength: formData.stats.strength,
+        dexterity: formData.stats.dexterity,
+        constitution: formData.stats.constitution,
+        intelligence: formData.stats.intelligence,
+        wisdom: formData.stats.wisdom,
+        charisma: formData.stats.charisma,
+        armor_class: formData.stats.armorClass,
+        hit_points: formData.stats.hitPoints,
+        actions: JSON.stringify(formData.stats.actions) // Store actions as JSON string
+      })
+    });
     
-    try {
-      const response = await fetch(`${config.apiUrl}/api/characters/${selectedCharacter.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: formData.name,
-          character_type: formData.character_type,
-          description: formData.description,
-          stats: JSON.stringify(formData.stats)
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update character');
-      }
-      
-      const data = await response.json();
-      setCharacters(characters.map(char => 
-        char.id === selectedCharacter.id ? data : char
-      ));
-      setIsEditing(false);
-      setSelectedCharacter(data);
-      
-    } catch (err) {
-      console.error('Failed to update character:', err);
-      setError('Failed to update character. Please try again.');
+    if (!response.ok) {
+      throw new Error('Failed to create character');
     }
-  };
+    
+    const data = await response.json();
+    
+    // Refresh the character list to get the newly created character with proper format
+    await fetchCharacters();
+    
+    setIsCreating(false);
+    resetForm();
+    
+    // Select the newly created character
+    const newCharacter = characters.find(char => char.id === data.id);
+    if (newCharacter) {
+      setSelectedCharacter(newCharacter);
+    }
+    
+  } catch (err) {
+    console.error('Failed to create character:', err);
+    setError('Failed to create character. Please try again.');
+  }
+};
+
+// Update existing character - FIXED VERSION
+const handleUpdate = async () => {
+  if (!selectedCharacter) return;
+  
+  try {
+    const response = await fetch(`${config.apiUrl}/api/characters/${selectedCharacter.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        name: formData.name,
+        character_type: formData.character_type,
+        description: formData.description,
+        // Send individual stat fields instead of JSON string
+        strength: formData.stats.strength,
+        dexterity: formData.stats.dexterity,
+        constitution: formData.stats.constitution,
+        intelligence: formData.stats.intelligence,
+        wisdom: formData.stats.wisdom,
+        charisma: formData.stats.charisma,
+        armor_class: formData.stats.armorClass,
+        hit_points: formData.stats.hitPoints,
+        actions: JSON.stringify(formData.stats.actions) // Store actions as JSON string
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update character');
+    }
+    
+    // Refresh the character list to get updated data
+    await fetchCharacters();
+    
+    setIsEditing(false);
+    
+    // Find and select the updated character
+    const updatedCharacter = characters.find(char => char.id === selectedCharacter.id);
+    if (updatedCharacter) {
+      setSelectedCharacter(updatedCharacter);
+    }
+    
+  } catch (err) {
+    console.error('Failed to update character:', err);
+    setError('Failed to update character. Please try again.');
+  }
+};
   
   // Delete character
   const handleDelete = async () => {
@@ -397,14 +428,45 @@ const CharacterManager = ({ user }) => {
     });
   };
 
-  // Start editing character
+  // Start editing character - FIXED VERSION
   const handleEditClick = () => {
     if (!selectedCharacter) return;
     
-    // Parse the stats if it's a string
-    const stats = typeof selectedCharacter.stats === 'string' 
-      ? JSON.parse(selectedCharacter.stats) 
-      : selectedCharacter.stats;
+    // Handle both old format (stats as JSON string) and new format (individual columns)
+    let stats;
+    
+    if (selectedCharacter.stats && typeof selectedCharacter.stats === 'string') {
+      // Old format - parse the JSON string
+      try {
+        stats = JSON.parse(selectedCharacter.stats);
+      } catch (e) {
+        console.warn('Could not parse stats JSON, using defaults:', e);
+        stats = {
+          strength: selectedCharacter.strength || 10,
+          dexterity: selectedCharacter.dexterity || 10,
+          constitution: selectedCharacter.constitution || 10,
+          intelligence: selectedCharacter.intelligence || 10,
+          wisdom: selectedCharacter.wisdom || 10,
+          charisma: selectedCharacter.charisma || 10,
+          armorClass: selectedCharacter.armor_class || 10,
+          hitPoints: selectedCharacter.hit_points || 10,
+          actions: []
+        };
+      }
+    } else {
+      // New format - build stats object from individual columns
+      stats = {
+        strength: selectedCharacter.strength || 10,
+        dexterity: selectedCharacter.dexterity || 10,
+        constitution: selectedCharacter.constitution || 10,
+        intelligence: selectedCharacter.intelligence || 10,
+        wisdom: selectedCharacter.wisdom || 10,
+        charisma: selectedCharacter.charisma || 10,
+        armorClass: selectedCharacter.armor_class || 10,
+        hitPoints: selectedCharacter.hit_points || 10,
+        actions: selectedCharacter.actions ? safeParseActions(selectedCharacter.actions) : []
+      };
+    }
     
     setFormData({
       name: selectedCharacter.name,

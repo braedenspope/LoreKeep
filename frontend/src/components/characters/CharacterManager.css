@@ -1,4 +1,4 @@
-/* CharacterManager.css - Enhanced with selective dice rolling for ability scores and attacks only */
+/* CharacterManager.css - Enhanced with better filter buttons and selective dice rolling */
 .character-manager {
     display: flex;
     height: calc(100vh - 60px);
@@ -65,6 +65,7 @@
     font-size: 14px;
   }
   
+  /* FIXED: Better filter button styling with improved readability */
   .character-filters {
     display: flex;
     gap: 5px;
@@ -72,25 +73,41 @@
   }
   
   .character-filters button {
-    background-color: #f1f1f1;
-    border: 1px solid #ddd;
+    background-color: #f8f5e9; /* Light cream background */
+    border: 2px solid #d5b78a; /* Brown border */
     border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 12px;
+    padding: 8px 12px; /* Increased padding for better touch targets */
+    font-size: 14px; /* Increased font size for better readability */
     cursor: pointer;
     transition: all 0.2s;
     flex-grow: 1;
     text-align: center;
+    color: #5e2612; /* Dark brown text for good contrast */
+    font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 60px; /* Ensure minimum width */
   }
   
   .character-filters button:hover {
-    background-color: #e1e1e1;
+    background-color: #f0e6d2; /* Slightly darker on hover */
+    border-color: #a67c52; /* Darker border on hover */
+    transform: translateY(-1px); /* Subtle lift effect */
+    box-shadow: 0 2px 4px rgba(101, 67, 33, 0.2);
   }
   
   .character-filters button.active {
-    background-color: #7b2d26;
-    color: white;
-    border-color: #7b2d26;
+    background-color: #7b2d26; /* Dark red background for active */
+    color: #fff; /* White text for active */
+    border-color: #7b2d26; /* Matching border */
+    box-shadow: 0 2px 6px rgba(123, 45, 38, 0.3);
+    transform: translateY(-1px);
+  }
+  
+  .character-filters button.active:hover {
+    background-color: #9a3c34; /* Lighter red on hover when active */
+    border-color: #9a3c34;
   }
   
   .character-list {
@@ -638,6 +655,50 @@
     background-color: #6b8e23; /* Olive drab */
   }
   
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .stats-grid .stat-item {
+    padding: 10px 5px;
+  }
+  
+  .stats-grid .stat-item input {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid #d5b78a;
+    border-radius: 4px;
+    text-align: center;
+    background-color: #fffbf0;
+    color: #3e2723;
+    font-family: 'Bookman Old Style', Georgia, serif;
+  }
+  
+  .combat-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .combat-stat {
+    flex: 1;
+  }
+  
+  .combat-stat input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #d5b78a;
+    border-radius: 4px;
+    text-align: center;
+    background-color: #fffbf0;
+    color: #3e2723;
+    font-family: 'Bookman Old Style', Georgia, serif;
+    font-size: 16px;
+  }
+  
   .form-actions {
     display: flex;
     justify-content: flex-end;
@@ -693,7 +754,8 @@
     align-items: center;
     height: 300px;
     font-size: 18px;
-    color: #666;
+    color: #7b2d26;
+    font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
   }
   
   /* Responsive design */
@@ -723,5 +785,46 @@
     
     .character-details {
       padding: 15px;
+    }
+    
+    .character-filters {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .character-filters button {
+      margin-bottom: 0;
+      min-width: auto;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .character-manager {
+      height: auto;
+      min-height: calc(100vh - 60px);
+    }
+    
+    .character-sidebar {
+      height: auto;
+      min-height: 250px;
+    }
+    
+    .character-detail-panel {
+      height: auto;
+      min-height: 400px;
+    }
+    
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .detail-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .detail-actions {
+      margin-left: 0;
     }
   }
