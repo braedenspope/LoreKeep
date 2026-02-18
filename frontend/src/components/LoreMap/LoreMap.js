@@ -1145,3 +1145,5 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     </div>
   );
 };
+
+export default LoreMap;
