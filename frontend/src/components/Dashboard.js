@@ -13,42 +13,32 @@ const Dashboard = ({ user }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('Dashboard mounted, user:', user);
     fetchLoreMaps();
-  }, []); // Remove location dependency for now
+  }, []);
 
-  // Update the fetchLoreMaps function in Dashboard.js
   const fetchLoreMaps = async () => {
-    console.log('Fetching lore maps...');
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${config.apiUrl}/api/loremaps`, {
         method: 'GET',
         credentials: 'include'
       });
-      
-      console.log('Lore maps response status:', response.status);
-      
+
       if (response.status === 401) {
-        // User is not authenticated, clear localStorage and redirect
-        console.log('User not authenticated, clearing session');
         localStorage.removeItem('user');
-        window.location.href = '/login'; // Force full page reload to login
+        navigate('/login');
         return;
       }
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch campaigns (${response.status})`);
       }
-      
+
       const data = await response.json();
-      console.log('Fetched lore maps:', data);
       setLoreMaps(data);
     } catch (err) {
-      console.error('Failed to fetch lore maps:', err);
-      
       // Check if it's a network error
       if (err.message.includes('fetch')) {
         setError('Cannot connect to server. Please check if the backend is running on http://localhost:5000');
@@ -79,23 +69,21 @@ const Dashboard = ({ user }) => {
       
       if (response.status === 401) {
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        navigate('/login');
         return;
       }
-      
+
       if (!response.ok) {
         throw new Error('Failed to create campaign');
       }
-      
+
       const data = await response.json();
       setLoreMaps([...loreMaps, data]);
       setShowNewMapForm(false);
       setNewMapData({ title: '', description: '' });
-      
-      // Navigate to the new map
+
       navigate(`/loremap/${data.id}`);
     } catch (err) {
-      console.error('Failed to create lore map:', err);
       setError('Failed to create new campaign. Please try again.');
     }
   };
@@ -119,38 +107,19 @@ const Dashboard = ({ user }) => {
       
       if (response.status === 401) {
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        navigate('/login');
         return;
       }
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete campaign');
       }
-      
-      // Remove from local state
-      setLoreMaps(loreMaps.filter(map => map.id !== id));
-      
-      console.log('Campaign deleted successfully');
-      
-    } catch (err) {
-      console.error('Failed to delete campaign:', err);
-      setError('Failed to delete campaign. Please try again.');
-    }
-  };
 
-  // Check if backend is reachable
-  const checkBackendHealth = async () => {
-    try {
-      const response = await fetch(`${config.apiUrl}/api/test`);
-      if (response.ok) {
-        alert('Backend is reachable! ✅');
-        fetchLoreMaps(); // Retry fetching data
-      } else {
-        alert('Backend responded but with an error');
-      }
+      setLoreMaps(loreMaps.filter(map => map.id !== id));
+
     } catch (err) {
-      alert('Backend is not reachable. Make sure it\'s running on http://localhost:5000');
+      setError('Failed to delete campaign. Please try again.');
     }
   };
 
@@ -162,22 +131,12 @@ const Dashboard = ({ user }) => {
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>Your Campaigns</h2>
-        <div>
-          <button 
-            className="new-map-btn"
-            onClick={() => setShowNewMapForm(true)}
-          >
-            Create New Campaign
-          </button>
-          {/* Debug button */}
-          <button 
-            className="new-map-btn"
-            onClick={checkBackendHealth}
-            style={{ marginLeft: '10px', backgroundColor: '#666' }}
-          >
-            Test Backend
-          </button>
-        </div>
+        <button
+          className="new-map-btn"
+          onClick={() => setShowNewMapForm(true)}
+        >
+          Create New Campaign
+        </button>
       </div>
       
       {error && (

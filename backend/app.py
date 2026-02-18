@@ -57,8 +57,6 @@ frontend_urls = [
 # Remove None values
 frontend_urls = [url for url in frontend_urls if url]
 
-print(f"CORS allowed origins: {frontend_urls}")  # Debug log
-
 CORS(app, 
      origins=frontend_urls,
      allow_headers=['Content-Type', 'Authorization'], 
@@ -67,6 +65,19 @@ CORS(app,
      supports_credentials=True)
 
 db = SQLAlchemy(app)
+
+def safe_parse_json(json_str):
+    """Safely parse a JSON string, returning None for invalid input."""
+    if not json_str:
+        return None
+    if isinstance(json_str, (list, dict)):
+        return json_str
+    if json_str in ['[object Object]', 'undefined', 'null', '']:
+        return None
+    try:
+        return json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return None
 
 # Define models
 class User(db.Model):
@@ -603,25 +614,6 @@ def get_characters():
             Character.name.asc()  # Then alphabetical
         ).all()
         
-        def safe_parse_json(json_str):
-            """Safely parse JSON with better error handling"""
-            if not json_str:
-                return None
-            
-            # Check if it's already a valid object
-            if isinstance(json_str, (list, dict)):
-                return json_str
-            
-            # Check for common invalid values
-            if json_str in ['[object Object]', 'undefined', 'null', '']:
-                return None
-            
-            try:
-                return json.loads(json_str)
-            except (json.JSONDecodeError, TypeError) as e:
-                print(f"Warning: Could not parse JSON: {json_str[:100]}... Error: {e}")
-                return None
-        
         result = []
         for char in characters:
             char_data = {
@@ -657,16 +649,11 @@ def get_characters():
                 "languages": char.languages
             }
             
-            # Debug log for custom characters
-            if not char.is_official:
-                print(f"Custom character {char.name} (ID: {char.id}) actions: {char.actions}")
-            
             result.append(char_data)
         
         return jsonify(result)
         
     except Exception as e:
-        print(f"Error in get_characters: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/characters/<int:id>', methods=['GET'])
@@ -686,26 +673,7 @@ def get_character(id):
     
     if not character:
         return jsonify({"error": "Character not found"}), 404
-    
-    def safe_parse_json(json_str):
-        """Safely parse JSON with better error handling"""
-        if not json_str:
-            return None
-        
-        # Check if it's already a valid object
-        if isinstance(json_str, (list, dict)):
-            return json_str
-        
-        # Check for common invalid values
-        if json_str in ['[object Object]', 'undefined', 'null', '']:
-            return None
-        
-        try:
-            return json.loads(json_str)
-        except (json.JSONDecodeError, TypeError) as e:
-            print(f"Warning: Could not parse JSON for character {character.name}: {json_str[:100]}... Error: {e}")
-            return None
-    
+
     return jsonify({
         "id": character.id,
         "name": character.name,
@@ -746,8 +714,6 @@ def create_character():
     data = request.json
     
     try:
-        print(f"Creating character with data: {data}")  # Debug log
-        
         # Create character with individual stat fields
         new_character = Character(
             name=data.get('name', 'New Character'),
@@ -770,9 +736,7 @@ def create_character():
         
         db.session.add(new_character)
         db.session.commit()
-        
-        print(f"Character created with ID: {new_character.id}, actions: {new_character.actions}")  # Debug log
-        
+
         return jsonify({
             "id": new_character.id,
             "name": new_character.name,
@@ -796,7 +760,6 @@ def create_character():
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating character: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/characters/<int:id>', methods=['PUT'])
@@ -813,9 +776,6 @@ def update_character(id):
     data = request.json
     
     try:
-        print(f"Updating character {id} with data: {data}")  # Debug log
-        print(f"Actions in request: {data.get('actions')}")  # Debug log
-        
         # Update character fields
         character.name = data.get('name', character.name)
         character.character_type = data.get('character_type', character.character_type)
@@ -834,12 +794,9 @@ def update_character(id):
         # Update actions if provided (including setting to None if empty)
         if 'actions' in data:
             character.actions = data['actions']
-            print(f"Updated character actions to: {character.actions}")  # Debug log
-        
+
         db.session.commit()
-        
-        print(f"Character {id} updated successfully, final actions: {character.actions}")  # Debug log
-        
+
         return jsonify({
             "id": character.id,
             "name": character.name,
@@ -863,7 +820,6 @@ def update_character(id):
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error updating character: {e}")
         return jsonify({"error": f"Failed to update character: {str(e)}"}), 500
 
 @app.route('/api/characters/<int:id>', methods=['DELETE'])
@@ -1013,6 +969,5 @@ if __name__ == '__main__':
             )
             db.session.add(demo_user)
             db.session.commit()
-            print("Demo user created: username='demo', password='demo123'")
     
     app.run(host='0.0.0.0', port=port, debug=False)

@@ -53,7 +53,6 @@ const Login = ({ onLogin }) => {
       navigate('/dashboard');
       
     } catch (err) {
-      console.error('Login error:', err);
       setError(err.message || 'An error occurred during login. Please try again.');
     } finally {
       setLoading(false);

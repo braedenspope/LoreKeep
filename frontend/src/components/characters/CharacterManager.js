@@ -51,7 +51,6 @@ const CharacterManager = ({ user }) => {
         const parsed = JSON.parse(actionsData);
         return Array.isArray(parsed) ? parsed : [];
       } catch (e) {
-        console.warn('Could not parse actions data:', actionsData, e);
         return [];
       }
     }
@@ -80,7 +79,6 @@ const CharacterManager = ({ user }) => {
       const data = await response.json();
       setCharacters(data);
     } catch (err) {
-      console.error('Failed to fetch characters:', err);
       setError('Failed to load characters. Please try again later.');
     } finally {
       setLoading(false);
@@ -218,11 +216,8 @@ const CharacterManager = ({ user }) => {
     setRollActionName('');
   };
 
-  // Create a new character - FIXED VERSION
   const handleCreate = async () => {
   try {
-    console.log('Creating character with form data:', formData); // Debug log
-    
     const response = await fetch(`${config.apiUrl}/api/characters`, {
       method: 'POST',
       headers: {
@@ -255,8 +250,7 @@ const CharacterManager = ({ user }) => {
     }
     
     const data = await response.json();
-    console.log('Character created successfully:', data); // Debug log
-    
+
     // Refresh the character list
     await fetchCharacters();
     
@@ -272,18 +266,14 @@ const CharacterManager = ({ user }) => {
     }, 100);
     
   } catch (err) {
-    console.error('Failed to create character:', err);
     setError('Failed to create character. Please try again.');
   }
 };
 
-// 4. FIXED handleUpdate function
 const handleUpdate = async () => {
   if (!selectedCharacter) return;
-  
+
   try {
-    console.log('Updating character with form data:', formData); // Debug log
-    
     const response = await fetch(`${config.apiUrl}/api/characters/${selectedCharacter.id}`, {
       method: 'PUT',
       headers: {
@@ -316,8 +306,7 @@ const handleUpdate = async () => {
     }
     
     const data = await response.json();
-    console.log('Character updated successfully:', data); // Debug log
-    
+
     // Refresh the character list
     await fetchCharacters();
     
@@ -332,7 +321,6 @@ const handleUpdate = async () => {
     }, 100);
     
   } catch (err) {
-    console.error('Failed to update character:', err);
     setError('Failed to update character. Please try again.');
   }
 };
@@ -359,7 +347,6 @@ const handleUpdate = async () => {
       setSelectedCharacter(null);
       
     } catch (err) {
-      console.error('Failed to delete character:', err);
       setError('Failed to delete character. Please try again.');
     }
   };
@@ -448,22 +435,15 @@ const handleUpdate = async () => {
     });
   };
 
-  // Start editing character - FIXED VERSION
   const handleEditClick = () => {
     if (!selectedCharacter) return;
-    
-    console.log('Editing character:', selectedCharacter); // Debug log
-    
-    // Handle both old format (stats as JSON string) and new format (individual columns)
+
     let stats;
-    
+
     if (selectedCharacter.stats && typeof selectedCharacter.stats === 'string') {
-      // Old format - parse the JSON string
       try {
         stats = JSON.parse(selectedCharacter.stats);
-        console.log('Parsed stats from JSON string:', stats); // Debug log
       } catch (e) {
-        console.warn('Could not parse stats JSON, using defaults:', e);
         stats = {
           strength: selectedCharacter.strength || 10,
           dexterity: selectedCharacter.dexterity || 10,
@@ -477,10 +457,6 @@ const handleUpdate = async () => {
         };
       }
     } else {
-      // New format - build stats object from individual columns
-      console.log('Building stats from individual columns'); // Debug log
-      console.log('Character actions field:', selectedCharacter.actions); // Debug log
-      
       stats = {
         strength: selectedCharacter.strength || 10,
         dexterity: selectedCharacter.dexterity || 10,
@@ -493,9 +469,7 @@ const handleUpdate = async () => {
         actions: safeParseActions(selectedCharacter.actions)
       };
     }
-    
-    console.log('Final stats for editing:', stats); // Debug log
-    
+
     setFormData({
       name: selectedCharacter.name,
       character_type: selectedCharacter.character_type,
@@ -829,14 +803,9 @@ const handleUpdate = async () => {
         </div>
       )}
 
-      {/* FIXED: Custom character actions - check actions field directly */}
       {(() => {
-        console.log('Checking actions for character:', selectedCharacter.name);
-        console.log('Actions field:', selectedCharacter.actions);
-        
         const actionsToShow = safeParseActions(selectedCharacter.actions);
-        console.log('Parsed actions:', actionsToShow);
-        
+
         if (actionsToShow && actionsToShow.length > 0) {
           return (
             <div className="character-actions">

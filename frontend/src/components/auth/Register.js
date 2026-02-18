@@ -33,10 +33,7 @@ const Register = () => {
     }
     
     try {
-      const API_URL = config.apiUrl || 'http://localhost:5000';
-      console.log('Sending request to:', `${API_URL}/api/register`); // Debug log
-      
-      const response = await fetch(`${API_URL}/api/register`, {
+      const response = await fetch(`${config.apiUrl}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,34 +44,17 @@ const Register = () => {
           password: formData.password
         })
       });
-      
-      console.log('Response status:', response.status); // Debug log
-      console.log('Response headers:', response.headers); // Debug log
-      
-      // Log the raw response text before parsing as JSON
-      const responseText = await response.text();
-      console.log('Raw response:', responseText); // This will show us what we're actually getting
-      
-      // Try to parse as JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Response was:', responseText);
-        throw new Error('Server returned invalid response');
-      }
-      
+
+      const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || 'Registration failed');
       }
-      
-      // Show success and redirect to login
+
       alert('Registration successful! You can now log in.');
       navigate('/login');
-      
+
     } catch (err) {
-      console.error('Registration error:', err);
       setError(err.message || 'An error occurred during registration. Please try again.');
     } finally {
       setLoading(false);

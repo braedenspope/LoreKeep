@@ -1,4 +1,3 @@
-// LoreMap.jsx - Fixed character addition functionality
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './LoreMap.css';
 import EventConditions from './EventConditions';
@@ -9,21 +8,21 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
   const [connections, setConnections] = useState(initialConnections || []);
-
+  
   // Canvas panning and viewport state
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
-
+  
   // Event dragging state
   const [isDragging, setIsDragging] = useState(false);
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
+  
   // Connection creation state
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
-
+  
   // Character and battle map state
   const [characters, setCharacters] = useState([]);
   const [eventCharacters, setEventCharacters] = useState([]);
@@ -31,7 +30,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [battleMapFile, setBattleMapFile] = useState(null);
   const [battleMapPreview, setBattleMapPreview] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(false);
-
+  
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -39,11 +38,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const screenToWorld = useCallback((screenX, screenY) => {
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return { x: screenX, y: screenY };
-
+    
     // Get position relative to the canvas container
     const relativeX = screenX - containerRect.left;
     const relativeY = screenY - containerRect.top;
-
+    
     // Convert to world coordinates
     return {
       x: (relativeX - viewport.x) / viewport.scale,
@@ -55,7 +54,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const worldToScreen = useCallback((worldX, worldY) => {
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return { x: worldX, y: worldY };
-
+    
     return {
       x: worldX * viewport.scale + viewport.x + containerRect.left,
       y: worldY * viewport.scale + viewport.y + containerRect.top
@@ -66,10 +65,10 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const getViewportCenter = useCallback(() => {
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return { x: 0, y: 0 };
-
+    
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
-
+    
     return {
       x: (centerX - viewport.x) / viewport.scale,
       y: (centerY - viewport.y) / viewport.scale
@@ -105,16 +104,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           method: 'GET',
           credentials: 'include'
         });
-
+        
         if (response.ok) {
           const data = await response.json();
           setCharacters(data);
         }
       } catch (err) {
-        console.error('Failed to fetch characters:', err);
+        // Failed to fetch characters
       }
     };
-
+    
     fetchCharacters();
   }, []);
 
@@ -127,20 +126,18 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             method: 'GET',
             credentials: 'include'
           });
-
+          
           if (response.ok) {
             const data = await response.json();
             setEventCharacters(data.map(ec => ec.character_id));
           }
         } catch (err) {
-          console.error('Failed to fetch event characters:', err);
-          // If fetching fails, just set empty array
           setEventCharacters([]);
         }
       };
-
+      
       fetchEventCharacters();
-
+      
       if (editingEvent.battle_map_url) {
         setBattleMapPreview(`${config.apiUrl}${editingEvent.battle_map_url}`);
       }
@@ -153,23 +150,23 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Handle mouse down for panning and dragging
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
-
+    
     if (e.button === 2) { // Right mouse button - start panning
       setIsPanning(true);
       setLastPanPoint({ x: e.clientX, y: e.clientY });
       return;
     }
-
+    
     // Left mouse button - check if clicking on an event for dragging
     const target = e.target.closest('.event-node');
     if (target && !isCreatingConnection) {
       const eventId = parseInt(target.dataset.eventId);
       const event = events.find(e => e.id === eventId);
-
+      
       if (event) {
         setIsDragging(true);
         setDraggedEvent(event);
-
+        
         // Calculate offset from event position to mouse
         const worldMouse = screenToWorld(e.clientX, e.clientY);
         setDragOffset({
@@ -185,17 +182,17 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     if (isPanning) {
       const deltaX = e.clientX - lastPanPoint.x;
       const deltaY = e.clientY - lastPanPoint.y;
-
+      
       setViewport(prev => ({
         ...prev,
         x: prev.x + deltaX,
         y: prev.y + deltaY
       }));
-
+      
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     } else if (isDragging && draggedEvent) {
       const worldPos = screenToWorld(e.clientX, e.clientY);
-
+      
       setEvents(events.map(evt => 
         evt.id === draggedEvent.id 
           ? { 
@@ -220,20 +217,20 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Handle wheel for zooming
   const handleWheel = useCallback((e) => {
     e.preventDefault();
-
+    
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return;
-
+    
     const mouseX = e.clientX - containerRect.left;
     const mouseY = e.clientY - containerRect.top;
-
+    
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.max(0.1, Math.min(3, viewport.scale * scaleFactor));
-
+    
     // Zoom towards mouse position
     const newX = mouseX - (mouseX - viewport.x) * (newScale / viewport.scale);
     const newY = mouseY - (mouseY - viewport.y) * (newScale / viewport.scale);
-
+    
     setViewport({
       x: newX,
       y: newY,
@@ -245,7 +242,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-
+    
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -255,7 +252,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Create a new event at viewport center
   const handleCreateEventAtCenter = () => {
     const centerPos = getViewportCenter();
-
+    
     const newEvent = {
       id: Date.now(),
       title: 'New Event',
@@ -265,7 +262,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       position: centerPos,
       conditions: []
     };
-
+    
     setEvents([...events, newEvent]);
     setSelectedEvent(newEvent);
   };
@@ -276,27 +273,27 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       setViewport({ x: 0, y: 0, scale: 1 });
       return;
     }
-
+    
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (!containerRect) return;
-
+    
     // Calculate bounds of all events
     const positions = events.map(e => e.position);
     const minX = Math.min(...positions.map(p => p.x)) - 100;
     const maxX = Math.max(...positions.map(p => p.x)) + 250; // Account for event width
     const minY = Math.min(...positions.map(p => p.y)) - 100;
     const maxY = Math.max(...positions.map(p => p.y)) + 100;
-
+    
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
-
+    
     // Calculate scale to fit all events with padding
     const scaleX = (containerRect.width * 0.8) / contentWidth;
     const scaleY = (containerRect.height * 0.8) / contentHeight;
     const scale = Math.min(scaleX, scaleY, 1); // Don't scale larger than 1:1
-
+    
     // Center the content
     setViewport({
       x: containerRect.width / 2 - centerX * scale,
@@ -305,130 +302,10 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // Enhanced event condition checking with detailed reasons
   const checkEventConditions = (event) => {
     let conditions = [];
-
+    
     if (event.conditions) {
       if (Array.isArray(event.conditions)) {
         conditions = event.conditions;
@@ -436,22 +313,21 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         try {
           conditions = JSON.parse(event.conditions);
         } catch (e) {
-          console.warn('Failed to parse conditions:', event.conditions);
           conditions = [];
         }
       } else if (typeof event.conditions === 'object') {
         conditions = [event.conditions];
       }
     }
-
+    
     if (!conditions || conditions.length === 0) {
       return { accessible: true, reason: null };
     }
-
+    
     for (let condition of conditions) {
       let isMet = false;
       let reason = '';
-
+      
       switch (condition.type) {
         case 'event_completed':
           const isCompleted = eventStates[`event_${condition.target}_completed`] || false;
@@ -460,7 +336,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             ? `Requires "${getEventName(condition.target)}" to be completed`
             : `Requires "${getEventName(condition.target)}" to NOT be completed`;
           break;
-
+          
         case 'character_freed':
           const isFreed = eventStates[`character_${condition.target}_freed`] || false;
           isMet = condition.required ? isFreed : !isFreed;
@@ -468,7 +344,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             ? `Requires "${getCharacterName(condition.target)}" to be freed`
             : `Requires "${getCharacterName(condition.target)}" to NOT be freed`;
           break;
-
+          
         case 'character_alive':
           const isAlive = eventStates[`character_${condition.target}_alive`] !== false;
           isMet = condition.required ? isAlive : !isAlive;
@@ -476,22 +352,22 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             ? `Requires "${getCharacterName(condition.target)}" to be alive`
             : `Requires "${getCharacterName(condition.target)}" to be dead`;
           break;
-
+          
         case 'custom':
           const customState = eventStates[`custom_${condition.id}`] || false;
           isMet = condition.required ? customState : !customState;
           reason = condition.description || 'Custom condition not met';
           break;
-
+          
         default:
           isMet = true;
       }
-
+      
       if (!isMet) {
         return { accessible: false, reason };
       }
     }
-
+    
     return { accessible: true, reason: null };
   };
 
@@ -518,7 +394,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Handle event click
   const handleEventClick = (event, e) => {
     e.stopPropagation();
-
+    
     if (isCreatingConnection && connectionStart && connectionStart.id !== event.id) {
       const newConnection = {
         id: Date.now(),
@@ -526,30 +402,30 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         to: event.id,
         description: ''
       };
-
+      
       setConnections([...connections, newConnection]);
       setIsCreatingConnection(false);
       setConnectionStart(null);
       return;
     }
-
+    
     setSelectedEvent(event);
   };
 
   // Handle event double click
   const handleEventDoubleClick = (event, e) => {
     e.stopPropagation();
-
+    
     if (isCreatingConnection) return;
-
+    
     const eventToEdit = {
       ...event,
       conditions: event.conditions || []
     };
-
+    
     setEditingEvent(eventToEdit);
     setBattleMapFile(null);
-
+    
     if (event.battle_map_url) {
       setBattleMapPreview(`${config.apiUrl}${event.battle_map_url}`);
     } else {
@@ -565,7 +441,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         setConnectionStart(null);
         return;
       }
-
+      
       setSelectedEvent(null);
     }
   };
@@ -574,22 +450,22 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const handleBattleMapUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+    
     // Validate file using config utility
     const validation = config.validateImageFile(file);
-
+    
     if (!validation.valid) {
       alert(`Upload failed: ${validation.error}`);
       e.target.value = ''; // Reset file input
       return;
     }
-
+    
     setBattleMapFile(file);
     setUploadProgress(true);
-
+    
     // Show loading state while creating preview
     setBattleMapPreview(null);
-
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       setBattleMapPreview(e.target.result);
@@ -611,7 +487,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           method: 'DELETE',
           credentials: 'include'
         });
-
+        
         if (response.ok) {
           setBattleMapFile(null);
           setBattleMapPreview(null);
@@ -623,7 +499,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           throw new Error('Failed to remove battle map from server');
         }
       } catch (err) {
-        console.error('Failed to remove battle map:', err);
         alert(`Failed to remove battle map: ${err.message}`);
       }
     } else {
@@ -641,7 +516,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Handle conditions change for editing event
   const handleConditionsChange = (newConditions) => {
     if (!editingEvent) return;
-
+    
     setEditingEvent({
       ...editingEvent,
       conditions: newConditions
@@ -651,17 +526,14 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // FIXED: Add character to event with better error handling
   const handleAddCharacterToEvent = async (characterId) => {
     const parsedCharacterId = parseInt(characterId, 10);
-
+    
     if (!editingEvent || !parsedCharacterId || eventCharacters.includes(parsedCharacterId)) {
-      console.log('Skipping character addition:', { editingEvent: !!editingEvent, characterId: parsedCharacterId, alreadyPresent: eventCharacters.includes(parsedCharacterId) });
       return;
     }
-
+    
     try {
       // Check if this is a saved event (has a real ID from backend)
       if (editingEvent.id && editingEvent.id <= 1000000) {
-        console.log('Adding character to saved event:', editingEvent.id, 'character:', parsedCharacterId);
-
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters`, {
           method: 'POST',
           headers: {
@@ -673,55 +545,41 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             role: 'present'
           })
         });
-
+        
         if (response.ok) {
-          console.log('Successfully added character to event via API');
           setEventCharacters([...eventCharacters, parsedCharacterId]);
         } else {
           const errorData = await response.json();
-          console.error('API error response:', errorData);
           throw new Error(errorData.error || `Server responded with status ${response.status}`);
         }
       } else {
-        // For new/unsaved events, just update local state
-        console.log('Adding character to unsaved event locally');
         setEventCharacters([...eventCharacters, parsedCharacterId]);
       }
     } catch (err) {
-      console.error('Failed to add character to event:', err);
       alert(`Failed to add character: ${err.message}`);
     }
   };
 
-  // FIXED: Remove character from event with better error handling
   const handleRemoveCharacterFromEvent = async (characterId) => {
     if (!editingEvent) return;
 
     try {
-      // Check if this is a saved event (has a real ID from backend)
       if (editingEvent.id && editingEvent.id <= 1000000) {
-        console.log('Removing character from saved event:', editingEvent.id, 'character:', characterId);
-
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters/${characterId}`, {
           method: 'DELETE',
           credentials: 'include'
         });
-
+        
         if (response.ok) {
-          console.log('Successfully removed character from event via API');
           setEventCharacters(eventCharacters.filter(id => id !== characterId));
         } else {
           const errorData = await response.json();
-          console.error('API error response:', errorData);
           throw new Error(errorData.error || `Server responded with status ${response.status}`);
         }
       } else {
-        // For new/unsaved events, just update local state
-        console.log('Removing character from unsaved event locally');
         setEventCharacters(eventCharacters.filter(id => id !== characterId));
       }
     } catch (err) {
-      console.error('Failed to remove character from event:', err);
       alert(`Failed to remove character: ${err.message}`);
     }
   };
@@ -729,10 +587,10 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Enhanced save event with better error handling
   const handleSaveEvent = async () => {
     if (!editingEvent) return;
-
+    
     try {
       let updatedEvent = { ...editingEvent };
-
+      
       if (editingEvent.id && editingEvent.id <= 1000000) {
         // Handle battle map upload with validation
         if (battleMapFile) {
@@ -742,16 +600,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             alert(`Cannot save: ${validation.error}`);
             return;
           }
-
+          
           const formData = new FormData();
           formData.append('battle_map', battleMapFile);
-
+          
           const uploadResponse = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/battle-map`, {
             method: 'POST',
             credentials: 'include',
             body: formData
           });
-
+          
           if (uploadResponse.ok) {
             const uploadData = await uploadResponse.json();
             updatedEvent.battle_map_url = uploadData.battle_map_url;
@@ -760,7 +618,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             throw new Error(errorData.error || 'Failed to upload battle map');
           }
         }
-
+        
         // Save other event data
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}`, {
           method: 'PUT',
@@ -778,36 +636,35 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             battle_map_url: updatedEvent.battle_map_url
           })
         });
-
+        
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to update event');
         }
-
+        
         const backendEvent = await response.json();
         updatedEvent = {
           ...updatedEvent,
           battle_map_url: backendEvent.battle_map_url
         };
       }
-
+      
       // Update local state
       setEvents(events.map(evt => 
         evt.id === editingEvent.id ? updatedEvent : evt
       ));
-
+      
       if (selectedEvent && selectedEvent.id === editingEvent.id) {
         setSelectedEvent(updatedEvent);
       }
-
+      
       setEditingEvent(null);
       setBattleMapFile(null);
       setBattleMapPreview(null);
-
+      
       alert('Event saved successfully!');
-
+      
     } catch (err) {
-      console.error('Failed to save event:', err);
       alert(`Failed to save event: ${err.message}`);
     }
   };
@@ -824,16 +681,16 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   // Delete an event
   const handleDeleteEvent = () => {
     if (!selectedEvent) return;
-
+    
     if (!window.confirm(`Are you sure you want to delete "${selectedEvent.title}"?`)) {
       return;
     }
-
+    
     setEvents(events.filter(e => e.id !== selectedEvent.id));
     setConnections(connections.filter(
       c => c.from !== selectedEvent.id && c.to !== selectedEvent.id
     ));
-
+    
     setSelectedEvent(null);
   };
 
@@ -845,15 +702,60 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     return connections.map((connection, index) => {
       const fromEvent = events.find(e => e.id === connection.from);
       const toEvent = events.find(e => e.id === connection.to);
-      
+
       if (!fromEvent || !toEvent) return null;
-      
-      // Calculate screen positions for connection endpoints
-      const fromScreenX = (fromEvent.position.x + 75) * viewport.scale + viewport.x;
-      const fromScreenY = (fromEvent.position.y + 25) * viewport.scale + viewport.y;
-      const toScreenX = (toEvent.position.x + 75) * viewport.scale + viewport.x;
-      const toScreenY = (toEvent.position.y + 25) * viewport.scale + viewport.y;
-      
+
+      // Event node dimensions (must match CSS: width 150px + 12px padding each side + 2px border each side)
+      const nodeWidth = 178;
+      const nodeHeight = 50;
+
+      // Center of each event in world coordinates
+      const fromCenterX = fromEvent.position.x + nodeWidth / 2;
+      const fromCenterY = fromEvent.position.y + nodeHeight / 2;
+      const toCenterX = toEvent.position.x + nodeWidth / 2;
+      const toCenterY = toEvent.position.y + nodeHeight / 2;
+
+      // Direction vector from "from" center to "to" center
+      const dx = toCenterX - fromCenterX;
+      const dy = toCenterY - fromCenterY;
+
+      // Find the edge intersection point for a rectangle centered at (0,0)
+      const getEdgePoint = (cx, cy, halfW, halfH, dirX, dirY) => {
+        if (dirX === 0 && dirY === 0) return { x: cx, y: cy };
+
+        const absDx = Math.abs(dirX);
+        const absDy = Math.abs(dirY);
+
+        // Compare slopes to determine which edge is hit
+        let t;
+        if (absDx * halfH > absDy * halfW) {
+          // Hits left or right edge
+          t = halfW / absDx;
+        } else {
+          // Hits top or bottom edge
+          t = halfH / absDy;
+        }
+
+        return {
+          x: cx + dirX * t,
+          y: cy + dirY * t
+        };
+      };
+
+      const halfW = nodeWidth / 2;
+      const halfH = nodeHeight / 2;
+
+      // From-event: edge closest to to-event (direction: dx, dy)
+      const fromEdge = getEdgePoint(fromCenterX, fromCenterY, halfW, halfH, dx, dy);
+      // To-event: edge closest to from-event (direction: -dx, -dy)
+      const toEdge = getEdgePoint(toCenterX, toCenterY, halfW, halfH, -dx, -dy);
+
+      // Convert to screen coordinates
+      const fromScreenX = fromEdge.x * viewport.scale + viewport.x;
+      const fromScreenY = fromEdge.y * viewport.scale + viewport.y;
+      const toScreenX = toEdge.x * viewport.scale + viewport.x;
+      const toScreenY = toEdge.y * viewport.scale + viewport.y;
+
       return (
         <line
           key={index}
@@ -875,7 +777,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       <div className="lore-map-sidebar">
         <div className="sidebar-controls">
           <h3>Map Controls</h3>
-
+          
           <button 
             className="control-btn primary"
             onClick={handleCreateEventAtCenter}
@@ -883,7 +785,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           >
             📝 New Event
           </button>
-
+          
           <button 
             className="control-btn secondary"
             onClick={handleResetView}
@@ -891,7 +793,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           >
             🔍 Fit All
           </button>
-
+          
           <button 
             className="control-btn secondary"
             onClick={() => setViewport({ x: 0, y: 0, scale: 1 })}
@@ -899,7 +801,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           >
             🏠 Reset View
           </button>
-
+          
           {selectedEvent && (
             <>
               <hr />
@@ -938,7 +840,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               </div>
             </>
           )}
-
+          
           <hr />
           <div className="viewport-info">
             <h4>Viewport Info</h4>
@@ -949,7 +851,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           </div>
         </div>
       </div>
-
+      
       {/* Main canvas area */}
       <div className="lore-map-main">
         <div 
@@ -987,7 +889,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             </defs>
             {renderConnections()}
           </svg>
-
+          
           <div 
             ref={canvasRef}
             className="lore-map-canvas infinite"
@@ -1000,7 +902,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             {events.map(event => {
               const conditionStatus = checkEventConditions(event);
               const isCompleted = eventStates[`event_${event.id}_completed`] || false;
-
+              
               return (
                 <div
                   key={event.id}
@@ -1025,7 +927,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                 >
                   <h3>{event.title}</h3>
                   <div className="event-location">{event.location}</div>
-
+                  
                   {/* Enhanced condition indicators */}
                   {!conditionStatus.accessible && (
                     <div className="condition-indicator locked" title={conditionStatus.reason}>🔒</div>
@@ -1042,11 +944,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                 </div>
               );
             })}
-
+            
             {/* Grid background */}
             <div className="grid-background" />
           </div>
-
+          
           {isCreatingConnection && (
             <div className="connection-help-text">
               Click on another event to create a connection, or click elsewhere to cancel.
@@ -1054,7 +956,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           )}
         </div>
       </div>
-
+      
       {/* Event editing modal */}
       {editingEvent && (
         <div className="event-edit-modal-overlay">
@@ -1063,7 +965,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               <h2>Edit Event</h2>
               <button className="modal-close-btn" onClick={handleCancelEdit}>×</button>
             </div>
-
+            
             <div className="event-edit-content">
               <div className="event-edit-left">
                 <div className="form-group">
@@ -1074,7 +976,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     onChange={(e) => setEditingEvent({...editingEvent, title: e.target.value})}
                   />
                 </div>
-
+                
                 <div className="form-group">
                   <label>Location:</label>
                   <input 
@@ -1083,7 +985,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     onChange={(e) => setEditingEvent({...editingEvent, location: e.target.value})}
                   />
                 </div>
-
+                
                 <div className="form-group">
                   <label>Description:</label>
                   <textarea 
@@ -1092,7 +994,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     rows="6"
                   />
                 </div>
-
+                
                 <div className="form-group checkbox-group">
                   <label>
                     <input 
@@ -1114,7 +1016,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     Mark as completed
                   </label>
                 </div>
-
+                
                 {/* FIXED: Characters Section with better error handling */}
                 <div className="characters-section">
                   <h3>Characters Present</h3>
@@ -1123,9 +1025,8 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       value="" 
                       onChange={(e) => {
                         if (e.target.value) {
-                          console.log('Selected character:', e.target.value);
                           handleAddCharacterToEvent(e.target.value);
-                          e.target.value = ''; // Reset dropdown
+                          e.target.value = '';
                         }
                       }}
                     >
@@ -1140,7 +1041,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                         ))}
                     </select>
                   </div>
-
+                  
                   <div className="character-list">
                     {eventCharacters.length === 0 ? (
                       <p className="no-characters">No characters assigned to this event</p>
@@ -1148,11 +1049,8 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       <ul className="character-name-list">
                         {eventCharacters.map(charId => {
                           const character = characters.find(c => c.id === charId);
-                          if (!character) {
-                            console.warn('Character not found:', charId);
-                            return null;
-                          }
-
+                          if (!character) return null;
+                          
                           return (
                             <li key={charId} className="character-list-item">
                               <span className="character-name">{character.name}</span>
@@ -1175,7 +1073,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                   </div>
                 </div>
               </div>
-
+              
               <div className="event-edit-right">
                 {/* Enhanced Battle Map Section */}
                 <div className="battle-map-section">
@@ -1195,13 +1093,13 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       <small>Supported: PNG, JPG, GIF, WebP • Max size: 16MB</small>
                     </div>
                   </div>
-
+                  
                   {uploadProgress && (
                     <div className="upload-progress">
                       Loading preview...
                     </div>
                   )}
-
+                  
                   {battleMapPreview && (
                     <div className="battle-map-preview">
                       <img src={battleMapPreview} alt="Battle Map Preview" />
@@ -1219,7 +1117,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                     </div>
                   )}
                 </div>
-
+                
                 {/* Event Conditions */}
                 <EventConditions
                   conditions={editingEvent.conditions || []}
@@ -1229,7 +1127,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                 />
               </div>
             </div>
-
+            
             <div className="event-edit-actions">
               <button onClick={handleSaveEvent} className="save-btn">Save Changes</button>
               <button onClick={handleCancelEdit} className="cancel-btn">Cancel</button>
@@ -1240,3 +1138,5 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     </div>
   );
 };
+
+export default LoreMap;

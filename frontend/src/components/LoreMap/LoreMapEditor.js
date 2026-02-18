@@ -1,4 +1,3 @@
-// LoreMapEditor.js - Enhanced with complete export functionality
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoreMap from './LoreMap';
@@ -29,7 +28,6 @@ const LoreMapEditor = ({ user }) => {
       const data = await response.json();
       setLoreMap(data);
     } catch (err) {
-      console.error('Failed to fetch lore map:', err);
       setError('Failed to load campaign. Please try again later.');
     } finally {
       setLoading(false);
@@ -107,10 +105,9 @@ const LoreMapEditor = ({ user }) => {
       }
       
       alert('Campaign saved successfully!');
-      window.location.href = '/dashboard';
-      
+      navigate('/dashboard');
+
     } catch (err) {
-      console.error('Failed to save changes:', err);
       alert('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
@@ -182,13 +179,12 @@ const LoreMapEditor = ({ user }) => {
       await fetchLoreMap();
       alert('Campaign saved successfully!');
     } catch (err) {
-      console.error('Failed to save changes:', err);
       alert('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
   };
-  
+
   // Simple export for basic map data
   const handleBasicExport = () => {
     try {
@@ -212,7 +208,6 @@ const LoreMapEditor = ({ user }) => {
       document.body.removeChild(exportLink);
       
     } catch (err) {
-      console.error('Failed to export map:', err);
       alert('Failed to export map. Please try again.');
     }
   };
@@ -256,7 +251,7 @@ const LoreMapEditor = ({ user }) => {
               eventCharacterAssociations[event.id] = eventChars.map(ec => ec.character_id);
             }
           } catch (err) {
-            console.warn(`Could not fetch characters for event ${event.id}:`, err);
+            // Could not fetch characters for this event
           }
         }
       }
@@ -364,7 +359,6 @@ const LoreMapEditor = ({ user }) => {
       alert('Complete campaign data exported successfully!');
       
     } catch (err) {
-      console.error('Failed to export campaign:', err);
       alert(`Failed to export campaign data: ${err.message}`);
     } finally {
       setExporting(false);
@@ -372,7 +366,7 @@ const LoreMapEditor = ({ user }) => {
   };
 
   const handleReturnToDashboard = () => {
-    window.location.href = '/dashboard';
+    navigate('/dashboard');
   };
 
   if (loading) {
