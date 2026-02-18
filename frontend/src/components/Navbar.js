@@ -1,9 +1,15 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = ({ isAuthenticated, onLogout, user }) => {
-  const navigate = useNavigate();
+  const handleNavigation = (path) => {
+    if (window.location.pathname === path) {
+      window.location.reload();
+      return;
+    }
+    window.location.href = path;
+  };
 
   return (
     <nav className="navbar">
@@ -18,14 +24,14 @@ const Navbar = ({ isAuthenticated, onLogout, user }) => {
           <>
             <button
               className="nav-button"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => handleNavigation('/dashboard')}
             >
               Dashboard
             </button>
 
             <button
               className="nav-button"
-              onClick={() => navigate('/characters')}
+              onClick={() => handleNavigation('/characters')}
             >
               Characters
             </button>
@@ -39,14 +45,14 @@ const Navbar = ({ isAuthenticated, onLogout, user }) => {
           <>
             <button
               className="nav-button"
-              onClick={() => navigate('/login')}
+              onClick={() => handleNavigation('/login')}
             >
               Login
             </button>
 
             <button
               className="nav-button"
-              onClick={() => navigate('/register')}
+              onClick={() => handleNavigation('/register')}
             >
               Register
             </button>

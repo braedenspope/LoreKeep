@@ -24,7 +24,7 @@ const Dashboard = ({ user }) => {
 
       if (response.status === 401) {
         localStorage.removeItem('user');
-        navigate('/login');
+        window.location.href = '/login';
         return;
       }
 
@@ -69,7 +69,7 @@ const Dashboard = ({ user }) => {
       
       if (response.status === 401) {
         localStorage.removeItem('user');
-        navigate('/login');
+        window.location.href = '/login';
         return;
       }
 
@@ -107,7 +107,7 @@ const Dashboard = ({ user }) => {
       
       if (response.status === 401) {
         localStorage.removeItem('user');
-        navigate('/login');
+        window.location.href = '/login';
         return;
       }
 

@@ -227,16 +227,24 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     });
   }, [viewport]);
 
-  // Attach global mouse events
+  // Attach global mouse events and non-passive wheel listener
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-    
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      if (container) {
+        container.removeEventListener('wheel', handleWheel);
+      }
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handleMouseMove, handleMouseUp, handleWheel]);
 
   // Create a new event at viewport center
   const handleCreateEventAtCenter = () => {
@@ -851,7 +859,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           ref={containerRef}
           className="lore-map-canvas-container"
           onMouseDown={handleMouseDown}
-          onWheel={handleWheel}
           onContextMenu={(e) => e.preventDefault()}
           onClick={handleCanvasClick}
         >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import LoreMap from './LoreMap';
 import './LoreMapEditor.css';
 import config from '../../config';
@@ -11,8 +11,6 @@ const LoreMapEditor = ({ user }) => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const navigate = useNavigate();
-
   const fetchLoreMap = useCallback(async () => {
     try {
       setLoading(true);
@@ -105,7 +103,7 @@ const LoreMapEditor = ({ user }) => {
       }
       
       alert('Campaign saved successfully!');
-      navigate('/dashboard');
+      window.location.href = '/dashboard';
 
     } catch (err) {
       alert('Failed to save changes. Please try again.');
@@ -366,7 +364,7 @@ const LoreMapEditor = ({ user }) => {
   };
 
   const handleReturnToDashboard = () => {
-    navigate('/dashboard');
+    window.location.href = '/dashboard';
   };
 
   if (loading) {
