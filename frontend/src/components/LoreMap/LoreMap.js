@@ -534,6 +534,8 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     try {
       // Check if this is a saved event (has a real ID from backend)
       if (editingEvent.id && editingEvent.id <= 1000000) {
+        console.log('Adding character to saved event:', editingEvent.id, 'character:', parsedCharacterId);
+
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters`, {
           method: 'POST',
           headers: {
@@ -562,9 +564,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
 
   const handleRemoveCharacterFromEvent = async (characterId) => {
     if (!editingEvent) return;
-
+    
     try {
       if (editingEvent.id && editingEvent.id <= 1000000) {
+        console.log('Removing character from saved event:', editingEvent.id, 'character:', characterId);
+
         const response = await fetch(`${config.apiUrl}/api/events/${editingEvent.id}/characters/${characterId}`, {
           method: 'DELETE',
           credentials: 'include'
@@ -872,7 +876,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
               width: '100%',
               height: '100%',
               pointerEvents: 'none',
-              zIndex: 5
+              zIndex: 1
             }}
           >
             <defs>
@@ -1049,8 +1053,11 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
                       <ul className="character-name-list">
                         {eventCharacters.map(charId => {
                           const character = characters.find(c => c.id === charId);
-                          if (!character) return null;
-                          
+                          if (!character) {
+                            console.warn('Character not found:', charId);
+                            return null;
+                          }
+
                           return (
                             <li key={charId} className="character-list-item">
                               <span className="character-name">{character.name}</span>
@@ -1138,5 +1145,3 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     </div>
   );
 };
-
-export default LoreMap;
