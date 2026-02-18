@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './CharacterManager.css';
 import { rollAbilityCheck, rollFromNotation } from '../../utils/diceUtils';
 import DiceRollModal from '../common/DiceRollModal';
-import { formatChallengeRating, sortByChallengeRating } from '../../utils/challengeRatingUtils';
+import { formatChallengeRating } from '../../utils/challengeRatingUtils';
 import config from '../../config';
 
 const CharacterManager = ({ user }) => {
@@ -122,7 +122,7 @@ const CharacterManager = ({ user }) => {
     if (hasAttackKeyword) return true;
     
     // Check for "+X to hit" pattern with proper regex escaping
-    const attackBonusPattern = /[+\-]\d+\s*to\s*hit/i;
+    const attackBonusPattern = /[+-]\d+\s*to\s*hit/i;
     if (attackBonusPattern.test(actionText) || attackBonusPattern.test(actionName)) {
       return true;
     }
@@ -164,7 +164,7 @@ const CharacterManager = ({ user }) => {
       setRollActionName(name);
     } else {
       // Try to extract attack bonus from description text
-      const attackBonusMatch = actionDescription.match(/[+\-](\d+)\s*to\s*hit/i);
+      const attackBonusMatch = actionDescription.match(/[+-](\d+)\s*to\s*hit/i);
       const extractedBonus = attackBonusMatch ? parseInt(attackBonusMatch[1]) : null;
       
       if (extractedBonus !== null) {
@@ -174,7 +174,7 @@ const CharacterManager = ({ user }) => {
         const totalAttack = attackRoll.total + extractedBonus;
         
         // Try to extract damage from description
-        const damageMatch = actionDescription.match(/(\d+d\d+(?:[+\-]\d+)?)\s*(\w+)?\s*damage/i);
+        const damageMatch = actionDescription.match(/(\d+d\d+(?:[+-]\d+)?)\s*(\w+)?\s*damage/i);
         let damageText = '';
         
         if (damageMatch) {
@@ -305,13 +305,11 @@ const handleUpdate = async () => {
       throw new Error(errorData.error || 'Failed to update character');
     }
     
-    const data = await response.json();
-
     // Refresh the character list
     await fetchCharacters();
-    
+
     setIsEditing(false);
-    
+
     // Find and select the updated character
     setTimeout(() => {
       const updatedCharacter = characters.find(char => char.id === selectedCharacter.id);

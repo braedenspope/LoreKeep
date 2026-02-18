@@ -50,17 +50,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     };
   }, [viewport]);
 
-  // Convert world coordinates to screen coordinates
-  const worldToScreen = useCallback((worldX, worldY) => {
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    if (!containerRect) return { x: worldX, y: worldY };
-    
-    return {
-      x: worldX * viewport.scale + viewport.x + containerRect.left,
-      y: worldY * viewport.scale + viewport.y + containerRect.top
-    };
-  }, [viewport]);
-
   // Get the center of the current viewport in world coordinates
   const getViewportCenter = useCallback(() => {
     const containerRect = containerRef.current?.getBoundingClientRect();

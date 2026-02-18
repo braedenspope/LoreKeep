@@ -12,10 +12,6 @@ const Dashboard = ({ user }) => {
   
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchLoreMaps();
-  }, []);
-
   const fetchLoreMaps = async () => {
     setLoading(true);
     setError(null);
@@ -50,7 +46,11 @@ const Dashboard = ({ user }) => {
     }
   };
 
-  // Update handleCreateMap in Dashboard.js
+  useEffect(() => {
+    fetchLoreMaps();
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+
   const handleCreateMap = async (e) => {
     e.preventDefault();
     
