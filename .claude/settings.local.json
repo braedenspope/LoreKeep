@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(wc:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(python -c:*)",
+      "Bash(where:*)",
+      "Bash(env:*)",
+      "Bash(cmd.exe /c \"py --version\")",
+      "Bash(\"C:/Users/braed/OneDrive/Desktop/LoreKeep/venv/Scripts/python.exe\":*)"
     ]
   }
 }
