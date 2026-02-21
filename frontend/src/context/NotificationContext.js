@@ -32,36 +32,28 @@ export const NotificationProvider = ({ children }) => {
 
     setNotifications(prev => [...prev, notification]);
 
+    // Navigate immediately if specified, then auto-dismiss the toast
+    if (notification.navigateTo) {
+      navigate(notification.navigateTo);
+    }
+
     // Auto-dismiss
     timersRef.current[id] = setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
       delete timersRef.current[id];
-
-      // Navigate after dismiss if specified
-      if (notification.navigateTo) {
-        navigate(notification.navigateTo);
-      }
     }, duration);
 
     return id;
   }, [navigate]);
 
   const handleDismissNotification = useCallback((id) => {
-    // Find the notification before removing it (for navigateTo)
-    setNotifications(prev => {
-      const notification = prev.find(n => n.id === id);
-      if (notification?.navigateTo) {
-        // Delay navigation slightly so state updates cleanly
-        setTimeout(() => navigate(notification.navigateTo), 0);
-      }
-      return prev.filter(n => n.id !== id);
-    });
+    setNotifications(prev => prev.filter(n => n.id !== id));
 
     if (timersRef.current[id]) {
       clearTimeout(timersRef.current[id]);
       delete timersRef.current[id];
     }
-  }, [navigate]);
+  }, []);
 
   const showConfirm = useCallback((message) => {
     return new Promise((resolve) => {
