@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './LoreMap.css';
 import useCanvasViewport from '../../hooks/useCanvasViewport';
 import useEventEditing from '../../hooks/useEventEditing';
@@ -18,7 +18,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
 
-  const { viewport, containerRef, canvasRef, handleMouseDown, handleResetView, handleResetViewport, getViewportCenter } = useCanvasViewport({ events, setEvents, isCreatingConnection });
+  const { viewport, setViewport, containerRef, canvasRef, handleMouseDown, handleResetView, handleResetViewport, getViewportCenter } = useCanvasViewport({ events, setEvents, isCreatingConnection });
 
   const { editingEvent, setEditingEvent, eventStates, toggleEventCompleted, handleEventDoubleClick, handleCancelEdit, handleDeleteEvent } = useEventEditing({ events, setEvents, connections, setConnections, selectedEvent, setSelectedEvent, characters: [] });
 
@@ -157,6 +157,19 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setEvents([...events, newEvent]);
     setSelectedEvent(newEvent);
   };
+
+  // Navigate to a world position from minimap click
+  const handleMinimapNavigate = useCallback((worldX, worldY) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    setViewport(prev => ({
+      ...prev,
+      x: rect.width / 2 - worldX * prev.scale,
+      y: rect.height / 2 - worldY * prev.scale
+    }));
+  }, [containerRef, setViewport]);
 
   // Handle event click
   const handleEventClick = (event, e) => {
@@ -336,6 +349,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         onEventClick={handleEventClick}
         onEventDoubleClick={handleEventDoubleClick}
         checkEventConditions={checkEventConditionsWithCharacters}
+        onMinimapNavigate={handleMinimapNavigate}
       />
 
       {/* Event editing modal */}

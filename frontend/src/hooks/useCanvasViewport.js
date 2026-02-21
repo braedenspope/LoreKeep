@@ -194,6 +194,7 @@ const useCanvasViewport = ({ events, setEvents, isCreatingConnection }) => {
 
   return {
     viewport,
+    setViewport,
     containerRef,
     canvasRef,
     handleMouseDown,

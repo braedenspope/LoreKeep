@@ -2,6 +2,7 @@ import React from 'react';
 import './LoreMap.css';
 import EventNode from './EventNode';
 import ConnectionRenderer from './ConnectionRenderer';
+import Minimap from './Minimap';
 
 const LoreMapCanvas = ({
   containerRef,
@@ -17,7 +18,8 @@ const LoreMapCanvas = ({
   onCanvasClick,
   onEventClick,
   onEventDoubleClick,
-  checkEventConditions
+  checkEventConditions,
+  onMinimapNavigate
 }) => {
   return (
     <div className="lore-map-main">
@@ -97,6 +99,14 @@ const LoreMapCanvas = ({
             Click on another event to create a connection, or click elsewhere to cancel.
           </div>
         )}
+
+        <Minimap
+          events={events}
+          viewport={viewport}
+          containerRef={containerRef}
+          selectedEvent={selectedEvent}
+          onNavigate={onMinimapNavigate}
+        />
       </div>
     </div>
   );
