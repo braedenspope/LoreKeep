@@ -56,8 +56,8 @@ const LoreMapCanvas = ({
           <ConnectionRenderer
             connections={connections}
             events={events}
-            viewport={viewport}
             connectionStart={connectionStart}
+            containerRef={containerRef}
           />
         </svg>
 
