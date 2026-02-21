@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNotification } from '../context/NotificationContext';
 import config from '../config';
 
 const useBattleMap = () => {
+  const { showNotification } = useNotification();
   const [battleMapFile, setBattleMapFile] = useState(null);
   const [battleMapPreview, setBattleMapPreview] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(false);
@@ -14,7 +16,7 @@ const useBattleMap = () => {
     const validation = config.validateImageFile(file);
 
     if (!validation.valid) {
-      alert(`Upload failed: ${validation.error}`);
+      showNotification(`Upload failed: ${validation.error}`, 'error');
       e.target.value = ''; // Reset file input
       return;
     }
@@ -31,7 +33,7 @@ const useBattleMap = () => {
       setUploadProgress(false);
     };
     reader.onerror = () => {
-      alert('Failed to read image file. Please try again.');
+      showNotification('Failed to read image file. Please try again.', 'error');
       setBattleMapFile(null);
       setUploadProgress(false);
     };
@@ -57,7 +59,7 @@ const useBattleMap = () => {
           throw new Error('Failed to remove battle map from server');
         }
       } catch (err) {
-        alert(`Failed to remove battle map: ${err.message}`);
+        showNotification(`Failed to remove battle map: ${err.message}`, 'error');
       }
     } else {
       setBattleMapFile(null);

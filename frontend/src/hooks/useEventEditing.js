@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNotification } from '../context/NotificationContext';
 
 const useEventEditing = ({ events, setEvents, connections, setConnections, selectedEvent, setSelectedEvent, characters }) => {
+  const { showConfirm } = useNotification();
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventStates, setEventStates] = useState({});
 
@@ -111,12 +113,11 @@ const useEventEditing = ({ events, setEvents, connections, setConnections, selec
   };
 
   // Delete an event
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (!selectedEvent) return;
 
-    if (!window.confirm(`Are you sure you want to delete "${selectedEvent.title}"?`)) {
-      return;
-    }
+    const confirmed = await showConfirm(`Are you sure you want to delete "${selectedEvent.title}"?`);
+    if (!confirmed) return;
 
     setEvents(events.filter(e => e.id !== selectedEvent.id));
     setConnections(connections.filter(

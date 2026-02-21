@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { buildCharacterRequestBody } from '../utils/characterUtils';
+import { useNotification } from '../context/NotificationContext';
 import config from '../config';
 
 const useCharacters = () => {
+  const { showConfirm } = useNotification();
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,7 +69,8 @@ const useCharacters = () => {
   };
 
   const deleteCharacter = async (character) => {
-    if (!window.confirm(`Are you sure you want to delete ${character.name}?`)) {
+    const confirmed = await showConfirm(`Are you sure you want to delete ${character.name}?`);
+    if (!confirmed) {
       return false;
     }
 

@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import LoreMap from './LoreMap';
 import './LoreMapEditor.css';
+import { useNotification } from '../../context/NotificationContext';
 import config from '../../config';
 
 const LoreMapEditor = ({ user }) => {
+  const { showNotification } = useNotification();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [loreMap, setLoreMap] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -102,11 +105,10 @@ const LoreMapEditor = ({ user }) => {
         });
       }
       
-      alert('Campaign saved successfully!');
-      window.location.href = '/dashboard';
+      showNotification('Campaign saved successfully!', 'success', { navigateTo: '/dashboard' });
 
     } catch (err) {
-      alert('Failed to save changes. Please try again.');
+      showNotification('Failed to save changes. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -175,9 +177,9 @@ const LoreMapEditor = ({ user }) => {
       }
       
       await fetchLoreMap();
-      alert('Campaign saved successfully!');
+      showNotification('Campaign saved successfully!', 'success');
     } catch (err) {
-      alert('Failed to save changes. Please try again.');
+      showNotification('Failed to save changes. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -206,7 +208,7 @@ const LoreMapEditor = ({ user }) => {
       document.body.removeChild(exportLink);
       
     } catch (err) {
-      alert('Failed to export map. Please try again.');
+      showNotification('Failed to export map. Please try again.', 'error');
     }
   };
 
@@ -354,17 +356,17 @@ const LoreMapEditor = ({ user }) => {
       exportLink.click();
       document.body.removeChild(exportLink);
       
-      alert('Complete campaign data exported successfully!');
-      
+      showNotification('Campaign exported successfully!', 'success');
+
     } catch (err) {
-      alert(`Failed to export campaign data: ${err.message}`);
+      showNotification(`Failed to export campaign data: ${err.message}`, 'error');
     } finally {
       setExporting(false);
     }
   };
 
   const handleReturnToDashboard = () => {
-    window.location.href = '/dashboard';
+    navigate('/dashboard');
   };
 
   if (loading) {

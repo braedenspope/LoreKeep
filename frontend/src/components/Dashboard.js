@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
+import { useNotification } from '../context/NotificationContext';
 import config from '../config';
 
 const Dashboard = ({ user }) => {
+  const { showConfirm } = useNotification();
   const [loreMaps, setLoreMaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -95,9 +97,8 @@ const Dashboard = ({ user }) => {
 
   const handleDeleteMap = async (id, title) => {
     // Confirm deletion
-    if (!window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
-      return;
-    }
+    const confirmed = await showConfirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`);
+    if (!confirmed) return;
     
     try {
       const response = await fetch(`${config.apiUrl}/api/loremaps/${id}`, {

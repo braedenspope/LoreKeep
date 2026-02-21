@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNotification } from '../context/NotificationContext';
 import config from '../config';
 
 const useEventCharacters = (editingEvent) => {
+  const { showNotification } = useNotification();
   const [characters, setCharacters] = useState([]);
   const [eventCharacters, setEventCharacters] = useState([]);
 
@@ -85,7 +87,7 @@ const useEventCharacters = (editingEvent) => {
         setEventCharacters([...eventCharacters, parsedCharacterId]);
       }
     } catch (err) {
-      alert(`Failed to add character: ${err.message}`);
+      showNotification(`Failed to add character: ${err.message}`, 'error');
     }
   };
 
@@ -111,7 +113,7 @@ const useEventCharacters = (editingEvent) => {
         setEventCharacters(eventCharacters.filter(id => id !== characterId));
       }
     } catch (err) {
-      alert(`Failed to remove character: ${err.message}`);
+      showNotification(`Failed to remove character: ${err.message}`, 'error');
     }
   };
 

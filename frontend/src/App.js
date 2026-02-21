@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
+import { NotificationProvider } from './context/NotificationContext';
 import './App.css';
 import config from './config';
 
@@ -88,6 +89,7 @@ function App() {
 
   return (
     <Router>
+      <NotificationProvider>
       <div className="app">
         <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} user={user} />
         <div className="content">
@@ -123,6 +125,7 @@ function App() {
           </Routes>
         </div>
       </div>
+      </NotificationProvider>
     </Router>
   );
 }

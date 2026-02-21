@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import './Auth.css';
+import { useNotification } from '../../context/NotificationContext';
 import config from '../../config';
 
 const Register = () => {
+  const { showNotification } = useNotification();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -12,8 +13,6 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,8 +50,7 @@ const Register = () => {
         throw new Error(data.error || 'Registration failed');
       }
 
-      alert('Registration successful! You can now log in.');
-      navigate('/login');
+      showNotification('Registration successful! You can now log in.', 'success', { navigateTo: '/login' });
 
     } catch (err) {
       setError(err.message || 'An error occurred during registration. Please try again.');

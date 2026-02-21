@@ -4,12 +4,14 @@ import useCanvasViewport from '../../hooks/useCanvasViewport';
 import useEventEditing from '../../hooks/useEventEditing';
 import useBattleMap from '../../hooks/useBattleMap';
 import useEventCharacters from '../../hooks/useEventCharacters';
+import { useNotification } from '../../context/NotificationContext';
 import LoreMapSidebar from './LoreMapSidebar';
 import LoreMapCanvas from './LoreMapCanvas';
 import EventEditModal from './EventEditModal';
 import config from '../../config';
 
 const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => {
+  const { showNotification } = useNotification();
   const [events, setEvents] = useState(initialEvents || []);
   const [connections, setConnections] = useState(initialConnections || []);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -213,7 +215,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           // Double-check file validation before upload
           const validation = config.validateImageFile(battleMapFile);
           if (!validation.valid) {
-            alert(`Cannot save: ${validation.error}`);
+            showNotification(`Cannot save: ${validation.error}`, 'error');
             return;
           }
 
@@ -277,10 +279,10 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       setEditingEvent(null);
       resetBattleMap();
 
-      alert('Event saved successfully!');
+      showNotification('Event saved successfully!', 'success');
 
     } catch (err) {
-      alert(`Failed to save event: ${err.message}`);
+      showNotification(`Failed to save event: ${err.message}`, 'error');
     }
   };
 

@@ -8,7 +8,8 @@
       "Bash(env:*)",
       "Bash(cmd.exe /c \"py --version\")",
       "Bash(\"C:/Users/braed/OneDrive/Desktop/LoreKeep/venv/Scripts/python.exe\":*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx react-scripts build)"
     ]
   }
 }
