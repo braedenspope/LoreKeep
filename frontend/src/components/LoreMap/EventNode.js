@@ -31,6 +31,9 @@ const EventNode = ({
       onDoubleClick={(e) => onDoubleClick(event, e)}
       title={!conditionStatus.accessible ? conditionStatus.reason : event.description}
     >
+      {event.order_number && (
+        <div className="event-order-badge">{event.order_number}</div>
+      )}
       <h3>{event.title}</h3>
       <div className="event-location">{event.location}</div>
 

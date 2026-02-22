@@ -81,6 +81,12 @@ def update_event(event_id):
         event.conditions = json.dumps(data['conditions'])
     if 'is_party_location' in data:
         event.is_party_location = data['is_party_location']
+    if 'is_completed' in data:
+        event.is_completed = data['is_completed']
+    if 'dm_notes' in data:
+        event.dm_notes = data['dm_notes']
+    if 'order_number' in data:
+        event.order_number = data['order_number']
     # Don't override battle_map_url unless explicitly provided
     if 'battle_map_url' in data and data['battle_map_url'] is not None:
         event.image_url = data['battle_map_url']
@@ -100,6 +106,9 @@ def update_event(event_id):
             "y": event.position_y
         },
         "is_party_location": event.is_party_location,
+        "is_completed": event.is_completed,
+        "dm_notes": event.dm_notes,
+        "order_number": event.order_number,
         "battle_map_url": event.image_url,
         "conditions": json.loads(event.conditions) if event.conditions else [],
         "message": "Event updated successfully!"
@@ -144,5 +153,30 @@ def create_connection(lore_map_id):
         "from": new_connection.from_event_id,
         "to": new_connection.to_event_id,
         "description": new_connection.description,
+        "connection_type": new_connection.connection_type or 'default',
         "message": "Connection created successfully!"
     }), 201
+
+
+@events_bp.route('/api/events/<int:event_id>/toggle-complete', methods=['POST'])
+def toggle_event_complete(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    event = Event.query.join(LoreMap).filter(
+        Event.id == event_id,
+        LoreMap.user_id == user_id
+    ).first()
+
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+
+    event.is_completed = not event.is_completed
+    db.session.commit()
+
+    return jsonify({
+        "id": event.id,
+        "is_completed": event.is_completed,
+        "message": "Event completion toggled!"
+    })

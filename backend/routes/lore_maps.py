@@ -2,6 +2,7 @@ import json
 from flask import Blueprint, jsonify, request, session
 from extensions import db
 from models import LoreMap, Event, EventConnection
+from datetime import datetime
 
 lore_maps_bp = Blueprint('lore_maps', __name__)
 
@@ -96,6 +97,9 @@ def get_lore_map(id):
             "y": event.position_y
         },
         "is_party_location": event.is_party_location,
+        "is_completed": event.is_completed or False,
+        "dm_notes": event.dm_notes or '',
+        "order_number": event.order_number,
         "battle_map_url": event.image_url,
         "conditions": json.loads(event.conditions) if event.conditions else []
     } for event in events]
@@ -110,7 +114,8 @@ def get_lore_map(id):
         "id": conn.id,
         "from": conn.from_event_id,
         "to": conn.to_event_id,
-        "description": conn.description
+        "description": conn.description,
+        "connection_type": conn.connection_type or 'default'
     } for conn in connections]
 
     result = {
@@ -124,3 +129,62 @@ def get_lore_map(id):
     }
 
     return jsonify(result)
+
+
+@lore_maps_bp.route('/api/connections/<int:connection_id>', methods=['PUT'])
+def update_connection(connection_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    conn = EventConnection.query.get(connection_id)
+    if not conn:
+        return jsonify({"error": "Connection not found"}), 404
+
+    # Verify ownership through the from_event's lore map
+    event = Event.query.join(LoreMap).filter(
+        Event.id == conn.from_event_id,
+        LoreMap.user_id == user_id
+    ).first()
+    if not event:
+        return jsonify({"error": "Connection not found"}), 404
+
+    data = request.json
+    if 'description' in data:
+        conn.description = data['description']
+    if 'connection_type' in data:
+        conn.connection_type = data['connection_type']
+
+    event.lore_map.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({
+        "id": conn.id,
+        "from": conn.from_event_id,
+        "to": conn.to_event_id,
+        "description": conn.description,
+        "connection_type": conn.connection_type or 'default'
+    })
+
+
+@lore_maps_bp.route('/api/connections/<int:connection_id>', methods=['DELETE'])
+def delete_connection(connection_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    conn = EventConnection.query.get(connection_id)
+    if not conn:
+        return jsonify({"error": "Connection not found"}), 404
+
+    event = Event.query.join(LoreMap).filter(
+        Event.id == conn.from_event_id,
+        LoreMap.user_id == user_id
+    ).first()
+    if not event:
+        return jsonify({"error": "Connection not found"}), 404
+
+    db.session.delete(conn)
+    db.session.commit()
+
+    return jsonify({"message": "Connection deleted successfully!"})

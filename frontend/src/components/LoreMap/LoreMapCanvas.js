@@ -18,6 +18,7 @@ const LoreMapCanvas = ({
   onCanvasClick,
   onEventClick,
   onEventDoubleClick,
+  onConnectionClick,
   checkEventConditions,
   onMinimapNavigate
 }) => {
@@ -39,20 +40,25 @@ const LoreMapCanvas = ({
             left: 0,
             width: '100%',
             height: '100%',
-            pointerEvents: 'none',
+            pointerEvents: onConnectionClick ? 'auto' : 'none',
             zIndex: 1
           }}
         >
           <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="#8b4513" />
+            </marker>
+            <marker id="arrowhead-default" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#8b4513" />
+            </marker>
+            <marker id="arrowhead-success" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#4a6741" />
+            </marker>
+            <marker id="arrowhead-failure" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#7b2d26" />
+            </marker>
+            <marker id="arrowhead-optional" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#5a7a8a" />
             </marker>
           </defs>
           <ConnectionRenderer
@@ -60,6 +66,7 @@ const LoreMapCanvas = ({
             events={events}
             connectionStart={connectionStart}
             containerRef={containerRef}
+            onConnectionClick={onConnectionClick}
           />
         </svg>
 

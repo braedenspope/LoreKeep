@@ -1,7 +1,14 @@
 import React from 'react';
 import { getEdgePoint } from '../../utils/connectionGeometry';
 
-const ConnectionRenderer = ({ connections, events, connectionStart, containerRef }) => {
+const CONNECTION_COLORS = {
+  default: '#8b4513',
+  success: '#4a6741',
+  failure: '#7b2d26',
+  optional: '#5a7a8a'
+};
+
+const ConnectionRenderer = ({ connections, events, connectionStart, containerRef, onConnectionClick }) => {
   const containerRect = containerRef.current?.getBoundingClientRect();
   if (!containerRect) return null;
 
@@ -34,19 +41,58 @@ const ConnectionRenderer = ({ connections, events, connectionStart, containerRef
     const fromEdge = getEdgePoint(fromCenterX, fromCenterY, fromRect.width / 2, fromRect.height / 2, dx, dy);
     const toEdge = getEdgePoint(toCenterX, toCenterY, toRect.width / 2, toRect.height / 2, -dx, -dy);
 
+    const connType = connection.connection_type || 'default';
+    const strokeColor = connectionStart && connectionStart.id === fromEvent.id
+      ? '#5a7a8a'
+      : (CONNECTION_COLORS[connType] || CONNECTION_COLORS.default);
+
+    const markerId = `arrowhead-${connType}`;
+    const midX = (fromEdge.x + toEdge.x) / 2;
+    const midY = (fromEdge.y + toEdge.y) / 2;
+
     return (
-      <line
-        key={index}
-        x1={fromEdge.x}
-        y1={fromEdge.y}
-        x2={toEdge.x}
-        y2={toEdge.y}
-        stroke={connectionStart && connectionStart.id === fromEvent.id ? "#5a7a8a" : "#8b4513"}
-        strokeWidth="2"
-        markerEnd="url(#arrowhead)"
-      />
+      <g key={index}>
+        {/* Invisible wider hit area for clicking */}
+        {onConnectionClick && (
+          <line
+            x1={fromEdge.x}
+            y1={fromEdge.y}
+            x2={toEdge.x}
+            y2={toEdge.y}
+            stroke="transparent"
+            strokeWidth="12"
+            style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConnectionClick(connection, e);
+            }}
+          />
+        )}
+        <line
+          x1={fromEdge.x}
+          y1={fromEdge.y}
+          x2={toEdge.x}
+          y2={toEdge.y}
+          stroke={strokeColor}
+          strokeWidth="2"
+          markerEnd={`url(#${markerId})`}
+          style={{ pointerEvents: 'none' }}
+        />
+        {connection.description && (
+          <text
+            x={midX}
+            y={midY - 8}
+            textAnchor="middle"
+            className="connection-label-text"
+            style={{ pointerEvents: 'none' }}
+          >
+            {connection.description}
+          </text>
+        )}
+      </g>
     );
   });
 };
 
+export { CONNECTION_COLORS };
 export default ConnectionRenderer;

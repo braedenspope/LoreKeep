@@ -58,6 +58,17 @@ const EventEditModal = ({
               />
             </div>
 
+            <div className="form-group">
+              <label>Order #:</label>
+              <input
+                type="number"
+                min="1"
+                value={editingEvent.order_number || ''}
+                onChange={(e) => setEditingEvent({...editingEvent, order_number: e.target.value ? parseInt(e.target.value) : null})}
+                placeholder="Event sequence number"
+              />
+            </div>
+
             <div className="form-group checkbox-group">
               <label>
                 <input
@@ -78,6 +89,17 @@ const EventEditModal = ({
                 />
                 Mark as completed
               </label>
+            </div>
+
+            {/* DM Notes Section */}
+            <div className="form-group dm-notes-section">
+              <label>DM Notes (private):</label>
+              <textarea
+                value={editingEvent.dm_notes || ''}
+                onChange={(e) => setEditingEvent({...editingEvent, dm_notes: e.target.value})}
+                rows="4"
+                placeholder="Private notes only visible to the DM..."
+              />
             </div>
 
             {/* Characters Section */}

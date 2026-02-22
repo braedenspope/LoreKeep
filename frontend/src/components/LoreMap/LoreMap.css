@@ -769,6 +769,143 @@
   border-color: var(--border-medium);
 }
 
+/* DM Notes Section */
+.dm-notes-section {
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 2px dashed var(--border-light);
+}
+
+.dm-notes-section textarea {
+  border-style: dashed;
+  background-color: #fdf8ef;
+  font-style: italic;
+}
+
+.dm-notes-section textarea::placeholder {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Event Order Badge */
+.event-order-badge {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-gold);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  z-index: 20;
+  border: 2px solid white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Connection Edit Modal */
+.connection-edit-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal);
+  padding: 20px;
+}
+
+.connection-edit-modal {
+  background-color: var(--surface-card);
+  border-radius: 12px;
+  width: 95%;
+  max-width: 450px;
+  box-shadow: var(--shadow-overlay);
+  border: 3px double var(--border-medium);
+  font-family: var(--font-body);
+  position: relative;
+  overflow: hidden;
+}
+
+.connection-edit-modal .event-edit-header {
+  padding: 20px 24px;
+}
+
+.connection-edit-modal .event-edit-header h2 {
+  font-size: 20px;
+}
+
+.connection-edit-body {
+  padding: 20px 24px;
+}
+
+.connection-type-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: var(--surface-inset);
+  border-radius: var(--radius-sm);
+}
+
+.connection-color-swatch {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.connection-type-label {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.connection-edit-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 2px solid var(--border-light);
+}
+
+.connection-delete-btn {
+  padding: 10px 20px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.connection-delete-btn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.connection-save-group {
+  display: flex;
+  gap: 10px;
+}
+
+/* Connection labels on canvas */
+.connection-label-text {
+  font-family: var(--font-body);
+  font-size: 11px;
+  fill: var(--text-secondary, #4a3728);
+  pointer-events: none;
+}
+
 /* Conditions (LoreMap) */
 .conditions-section {
   margin-top: 20px;

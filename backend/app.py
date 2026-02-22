@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash
 import config
 from extensions import db
 from models import User
+from models.event import run_migrations
 from routes import all_blueprints
 
 # Initialize Flask app
@@ -43,6 +44,7 @@ if __name__ == '__main__':
 
     with app.app_context():
         db.create_all()  # Create database tables
+        run_migrations(db)  # Add new columns to existing tables
 
         # Create a demo user if none exists (for testing)
         if not User.query.filter_by(username='demo').first():

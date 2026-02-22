@@ -1,10 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import config from '../config';
 
 const useEventEditing = ({ events, setEvents, connections, setConnections, selectedEvent, setSelectedEvent, characters }) => {
   const { showConfirm } = useNotification();
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventStates, setEventStates] = useState({});
+
+  // Initialize eventStates from persisted is_completed on events
+  useEffect(() => {
+    const initialStates = {};
+    events.forEach(event => {
+      if (event.is_completed) {
+        initialStates[`event_${event.id}_completed`] = true;
+      }
+    });
+    setEventStates(prev => ({ ...prev, ...initialStates }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper functions for condition checking
   const getEventName = (eventId) => {
@@ -86,13 +98,30 @@ const useEventEditing = ({ events, setEvents, connections, setConnections, selec
     return { accessible: true, reason: null };
   };
 
-  // Toggle event completion state
-  const toggleEventCompleted = (eventId) => {
+  // Toggle event completion state and persist to backend
+  const toggleEventCompleted = async (eventId) => {
     const key = `event_${eventId}_completed`;
+    const newValue = !eventStates[key];
+
+    // Optimistic update
     setEventStates(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: newValue
     }));
+
+    // Persist to backend
+    try {
+      await fetch(`${config.apiUrl}/api/events/${eventId}/toggle-complete`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      // Revert on failure
+      setEventStates(prev => ({
+        ...prev,
+        [key]: !newValue
+      }));
+    }
   };
 
   // Handle event double click to open editing modal

@@ -8,6 +8,7 @@ import { useNotification } from '../../context/NotificationContext';
 import LoreMapSidebar from './LoreMapSidebar';
 import LoreMapCanvas from './LoreMapCanvas';
 import EventEditModal from './EventEditModal';
+import ConnectionEditModal from './ConnectionEditModal';
 import config from '../../config';
 
 const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => {
@@ -17,6 +18,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
+  const [editingConnection, setEditingConnection] = useState(null);
 
   const { viewport, setViewport, containerRef, canvasRef, handleMouseDown, handleResetView, handleResetViewport, getViewportCenter } = useCanvasViewport({ events, setEvents, isCreatingConnection });
 
@@ -180,7 +182,8 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         id: Date.now(),
         from: connectionStart.id,
         to: event.id,
-        description: ''
+        description: '',
+        connection_type: 'default'
       };
 
       setConnections([...connections, newConnection]);
@@ -264,7 +267,9 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
             position: updatedEvent.position,
             is_party_location: updatedEvent.isPartyLocation,
             conditions: updatedEvent.conditions,
-            battle_map_url: updatedEvent.battle_map_url
+            battle_map_url: updatedEvent.battle_map_url,
+            dm_notes: updatedEvent.dm_notes || '',
+            order_number: updatedEvent.order_number || null
           })
         });
 
@@ -314,6 +319,55 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
     setSelectedEvent(null);
   };
 
+  // Connection click handler — open edit modal
+  const handleConnectionClick = (connection, e) => {
+    if (e) e.stopPropagation();
+    setEditingConnection(connection);
+  };
+
+  // Save connection (update label + type)
+  const handleSaveConnection = async (updatedConnection) => {
+    // Persist to backend if it's a saved connection (has a real DB id)
+    if (updatedConnection.id && updatedConnection.id <= 1000000) {
+      try {
+        await fetch(`${config.apiUrl}/api/connections/${updatedConnection.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            description: updatedConnection.description,
+            connection_type: updatedConnection.connection_type
+          })
+        });
+      } catch (err) {
+        showNotification('Failed to save connection', 'error');
+      }
+    }
+
+    // Update local state
+    setConnections(connections.map(c =>
+      c.id === updatedConnection.id ? updatedConnection : c
+    ));
+    setEditingConnection(null);
+  };
+
+  // Delete connection
+  const handleDeleteConnection = async (connection) => {
+    if (connection.id && connection.id <= 1000000) {
+      try {
+        await fetch(`${config.apiUrl}/api/connections/${connection.id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } catch (err) {
+        showNotification('Failed to delete connection', 'error');
+      }
+    }
+
+    setConnections(connections.filter(c => c.id !== connection.id));
+    setEditingConnection(null);
+  };
+
   // Edit event handler (bridges sidebar to double-click handler)
   const handleEditEvent = (event) => {
     handleEventDoubleClick(event, { stopPropagation: () => {} });
@@ -347,6 +401,7 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
         onCanvasClick={handleCanvasClick}
         onEventClick={handleEventClick}
         onEventDoubleClick={handleEventDoubleClick}
+        onConnectionClick={handleConnectionClick}
         checkEventConditions={checkEventConditionsWithCharacters}
         onMinimapNavigate={handleMinimapNavigate}
       />
@@ -371,6 +426,17 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
           onToggleCompleted={toggleEventCompleted}
           onSave={handleSaveEvent}
           onCancel={handleFullCancelEdit}
+        />
+      )}
+
+      {/* Connection editing modal */}
+      {editingConnection && (
+        <ConnectionEditModal
+          connection={editingConnection}
+          events={events}
+          onSave={handleSaveConnection}
+          onDelete={handleDeleteConnection}
+          onCancel={() => setEditingConnection(null)}
         />
       )}
     </div>
