@@ -41,7 +41,7 @@
   color: #f0e6d2;
   margin-left: 25px;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 16px;
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -66,7 +66,7 @@
 
 .navbar-user span {
   margin-right: 15px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .logout-btn {
@@ -76,7 +76,7 @@
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -98,7 +98,7 @@
 
   .navbar-links a, .nav-button {
     margin-left: 15px;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .navbar-user {
@@ -113,11 +113,11 @@
 @media (max-width: 480px) {
   .navbar-links a, .nav-button {
     margin-left: 10px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .logout-btn {
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 13px;
   }
 }

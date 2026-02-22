@@ -112,7 +112,7 @@
 .lore-map-card p {
   color: var(--text-secondary);
   margin-bottom: 15px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   font-family: var(--font-body);
   position: relative;
@@ -122,7 +122,7 @@
 .map-dates {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-tertiary);
   margin-bottom: 15px;
   font-style: italic;
@@ -141,7 +141,7 @@
 .edit-map-btn, .delete-map-btn {
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   transition: background-color 0.2s;
   font-family: var(--font-display);

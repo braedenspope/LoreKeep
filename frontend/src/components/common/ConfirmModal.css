@@ -61,7 +61,7 @@
 .confirm-content p {
   margin: 0;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -81,7 +81,7 @@
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: 0.5px;
-  font-size: 13px;
+  font-size: 14px;
   transition: background-color 0.2s;
   border: none;
 }
