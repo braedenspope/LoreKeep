@@ -45,6 +45,16 @@ const LoreMapEditor = ({ user }) => {
 
   const saveAllChanges = async () => {
     // Save new events, update existing events, and save new connections in parallel
+    const buildEventPayload = (event) => ({
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      position: { x: event.position.x, y: event.position.y },
+      is_party_location: event.isPartyLocation ?? event.is_party_location ?? false,
+      dm_notes: event.dm_notes || '',
+      order_number: event.order_number || null
+    });
+
     const newEventPromises = loreMap.events
       .filter(e => !e.id || e.id > 1000000)
       .map(event =>
@@ -52,15 +62,7 @@ const LoreMapEditor = ({ user }) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            title: event.title,
-            description: event.description,
-            location: event.location,
-            position: { x: event.position.x, y: event.position.y },
-            is_party_location: event.isPartyLocation,
-            dm_notes: event.dm_notes || '',
-            order_number: event.order_number || null
-          })
+          body: JSON.stringify(buildEventPayload(event))
         })
       );
 
@@ -71,15 +73,7 @@ const LoreMapEditor = ({ user }) => {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            title: event.title,
-            description: event.description,
-            location: event.location,
-            position: { x: event.position.x, y: event.position.y },
-            is_party_location: event.isPartyLocation,
-            dm_notes: event.dm_notes || '',
-            order_number: event.order_number || null
-          })
+          body: JSON.stringify(buildEventPayload(event))
         })
       );
 
@@ -119,6 +113,7 @@ const LoreMapEditor = ({ user }) => {
       navigate('/dashboard');
     } catch (err) {
       showNotification('Failed to save changes. Please try again.', 'error');
+    } finally {
       setSaving(false);
     }
   };
