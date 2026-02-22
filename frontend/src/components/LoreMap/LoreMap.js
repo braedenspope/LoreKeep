@@ -324,7 +324,6 @@ const LoreMap = ({ initialEvents, initialConnections, onChange, loreMapId }) => 
       <LoreMapSidebar
         selectedEvent={selectedEvent}
         eventStates={eventStates}
-        viewport={viewport}
         onCreateEvent={handleCreateEventAtCenter}
         onResetView={handleResetView}
         onResetViewport={handleResetViewport}

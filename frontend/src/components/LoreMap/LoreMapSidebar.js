@@ -4,7 +4,6 @@ import './LoreMap.css';
 const LoreMapSidebar = ({
   selectedEvent,
   eventStates,
-  viewport,
   onCreateEvent,
   onResetView,
   onResetViewport,
@@ -14,12 +13,10 @@ const LoreMapSidebar = ({
   onToggleCompleted
 }) => {
   return (
-    <div className="lore-map-sidebar">
-      <div className="sidebar-controls">
-        <h3>Map Controls</h3>
-
+    <div className="lore-map-toolbar">
+      <div className="toolbar-row">
         <button
-          className="control-btn primary"
+          className="toolbar-btn primary"
           onClick={onCreateEvent}
           title="Create new event at center of view"
         >
@@ -27,64 +24,57 @@ const LoreMapSidebar = ({
         </button>
 
         <button
-          className="control-btn secondary"
+          className="toolbar-btn secondary"
           onClick={onResetView}
-          title="Reset view to show all events"
+          title="Fit all events in view"
         >
           🔍 Fit All
         </button>
 
         <button
-          className="control-btn secondary"
+          className="toolbar-btn secondary"
           onClick={onResetViewport}
           title="Reset to origin"
         >
-          🏠 Reset View
+          🏠 Reset
         </button>
-
-        {selectedEvent && (
-          <>
-            <hr />
-            <div className="selected-event-controls">
-              <h4>Selected Event</h4>
-              <p><strong>{selectedEvent.title}</strong></p>
-              <button
-                className="control-btn primary"
-                onClick={() => onEditEvent(selectedEvent)}
-              >
-                ✏️ Edit
-              </button>
-              <button
-                className="control-btn secondary"
-                onClick={() => onStartConnection(selectedEvent)}
-              >
-                🔗 Connect
-              </button>
-              <button
-                className="control-btn secondary"
-                onClick={onDeleteEvent}
-              >
-                🗑️ Delete
-              </button>
-              <button
-                className="control-btn secondary"
-                onClick={() => onToggleCompleted(selectedEvent.id)}
-              >
-                {eventStates[`event_${selectedEvent.id}_completed`] ? '☑️ Complete' : '⬜ Incomplete'}
-              </button>
-            </div>
-          </>
-        )}
-
-        <hr />
-        <div className="viewport-info">
-          <h4>Viewport Info</h4>
-          <p>Scale: {(viewport.scale * 100).toFixed(0)}%</p>
-          <p>Position: ({Math.round(viewport.x)}, {Math.round(viewport.y)})</p>
-          <small>Right-click and drag to pan</small>
-          <small>Mouse wheel to zoom</small>
-        </div>
       </div>
+
+      {selectedEvent && (
+        <div className="toolbar-row selected-row">
+          <span className="toolbar-selected-label" title={selectedEvent.title}>
+            {selectedEvent.title}
+          </span>
+          <button
+            className="toolbar-btn primary"
+            onClick={() => onEditEvent(selectedEvent)}
+            title="Edit event"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            className="toolbar-btn secondary"
+            onClick={() => onStartConnection(selectedEvent)}
+            title="Create connection"
+          >
+            🔗 Connect
+          </button>
+          <button
+            className="toolbar-btn secondary"
+            onClick={onDeleteEvent}
+            title="Delete event"
+          >
+            🗑️ Delete
+          </button>
+          <button
+            className="toolbar-btn secondary"
+            onClick={() => onToggleCompleted(selectedEvent.id)}
+            title="Toggle completion"
+          >
+            {eventStates[`event_${selectedEvent.id}_completed`] ? '☑️' : '⬜'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
