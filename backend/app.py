@@ -31,6 +31,10 @@ CORS(app,
 for bp in all_blueprints:
     app.register_blueprint(bp)
 
+# Run migrations on startup (works with gunicorn too)
+with app.app_context():
+    run_migrations(db)
+
 
 # Test endpoint
 @app.route('/api/test', methods=['GET'])
