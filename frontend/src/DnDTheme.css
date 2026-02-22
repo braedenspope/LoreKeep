@@ -31,8 +31,8 @@
   --text-tertiary: #8a7260;
 
   /* Typography */
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-body: 'Crimson Pro', Georgia, serif;
+  --font-display: 'Pirata One', cursive;
+  --font-body: 'Lora', Georgia, serif;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(62, 39, 35, 0.08);
