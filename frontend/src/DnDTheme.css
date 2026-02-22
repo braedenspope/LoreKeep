@@ -1,78 +1,124 @@
-/* DnDTheme.css */
+/* DnDTheme.css — Refined Professional Fantasy Theme */
 :root {
-  --primary-color: #7b2d26; /* Dark red */
-  --secondary-color: #3e2723; /* Dark brown */
-  --text-color: #3e2723; /* Dark brown for text */
-  --background-color: #f9f4e8; /* Light cream background */
-  --accent-color: #556b2f; /* Dark olive green */
-  --highlight-color: #d4af37; /* Gold */
-  --error-color: #7b2d26; /* Dark red */
-  --success-color: #2e5339; /* Forest green */
-  --card-bg-color: #fff6e6; /* Warm off-white */
-  --header-font: 'Cinzel', 'Bookman Old Style', Georgia, serif;
-  --body-font: 'Bookman Old Style', Georgia, serif;
+  /* Primary palette */
+  --color-primary: #7b2d26;
+  --color-primary-hover: #923830;
+  --color-secondary: #3e2723;
+  --color-gold: #c9a227;
+  --color-green: #4a6741;
+  --color-green-hover: #5a7d4f;
+  --color-error: #7b2d26;
+  --color-success: #2e5339;
+
+  /* Semantic status */
+  --color-info: #5a7a8a;
+  --color-warning: #9a6c2a;
+  --color-special: #7a5a7a;
+
+  /* Surfaces */
+  --surface-page: #f5f0e3;
+  --surface-card: #faf7ef;
+  --surface-input: #fdfbf5;
+  --surface-inset: #f0ebe0;
+
+  /* Borders */
+  --border-light: #d5c5a0;
+  --border-medium: #b89a6a;
+
+  /* Text */
+  --text-primary: #3e2723;
+  --text-secondary: #6b4a3a;
+  --text-tertiary: #8a7260;
+
+  /* Typography */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Crimson Pro', Georgia, serif;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(62, 39, 35, 0.08);
+  --shadow-md: 0 2px 8px rgba(62, 39, 35, 0.1);
+  --shadow-lg: 0 4px 16px rgba(62, 39, 35, 0.12);
+  --shadow-overlay: 0 8px 30px rgba(0, 0, 0, 0.25);
+
+  /* Spacing */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
 }
 
 body {
-  background-color: var(--background-color);
-  color: var(--text-color);
-  font-family: var(--body-font);
+  background-color: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
   margin: 0;
   padding: 0;
-  background-image: 
-    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-3.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.06' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--header-font);
-  color: var(--primary-color);
+  font-family: var(--font-display);
+  color: var(--color-primary);
 }
 
 button {
-  background-color: var(--primary-color);
+  background-color: var(--color-primary);
   color: white;
   border: none;
   padding: 8px 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-family: var(--header-font);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.5px;
   transition: background-color 0.2s;
 }
 
 button:hover {
-  background-color: #9a3c34; /* Lighter red */
+  background-color: var(--color-primary-hover);
+}
+
+button:disabled {
+  background-color: var(--border-light);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
 }
 
 button.secondary {
-  background-color: var(--secondary-color);
+  background-color: var(--color-secondary);
 }
 
 button.secondary:hover {
-  background-color: #543c36; /* Lighter brown */
+  background-color: #543c36;
 }
 
 input, textarea, select {
-  background-color: #fffbf0; /* Very light cream */
-  border: 1px solid #d5b78a; /* Light brown border */
+  background-color: var(--surface-input);
+  border: 1px solid var(--border-light);
   padding: 8px 12px;
-  border-radius: 4px;
-  color: var(--text-color);
-  font-family: var(--body-font);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: var(--highlight-color);
+  border-color: var(--color-gold);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.25);
 }
 
 /* Card style for panels */
 .card {
-  background-color: var(--card-bg-color);
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(62, 39, 35, 0.1);
+  background-color: var(--surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -80,20 +126,20 @@ input:focus, textarea:focus, select:focus {
 /* Error and success messages */
 .error-message {
   background-color: #f9e7e6;
-  color: var(--error-color);
-  border-left: 4px solid var(--error-color);
+  color: var(--color-error);
+  border-left: 4px solid var(--color-error);
   padding: 10px 15px;
   margin-bottom: 15px;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .success-message {
   background-color: #e7f0eb;
-  color: var(--success-color);
-  border-left: 4px solid var(--success-color);
+  color: var(--color-success);
+  border-left: 4px solid var(--color-success);
   padding: 10px 15px;
   margin-bottom: 15px;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 /* Loading animation */
@@ -102,18 +148,18 @@ input:focus, textarea:focus, select:focus {
   justify-content: center;
   align-items: center;
   height: 300px;
-  color: var(--primary-color);
-  font-family: var(--header-font);
+  color: var(--color-primary);
+  font-family: var(--font-display);
   font-size: 24px;
 }
 
-/* Make modals look like scrolls */
+/* Modal base styles */
 .modal-overlay {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.6);
 }
 
 .modal-content {
-  background-color: #fffaed;
-  border: 8px double #a67c52;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  background-color: var(--surface-card);
+  border: 3px double var(--border-medium);
+  box-shadow: var(--shadow-overlay);
 }

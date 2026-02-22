@@ -1,9 +1,9 @@
-/* LoreMapEditor.css - Complete version for infinite canvas layout */
+/* LoreMapEditor.css */
 .loremap-editor {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f9f4e8;
+  background-color: var(--surface-page);
 }
 
 .editor-header {
@@ -11,11 +11,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 25px;
-  background-color: #fffaed;
-  border-bottom: 3px double #a67c52;
-  box-shadow: 0 2px 8px rgba(101, 67, 33, 0.1);
+  background-color: var(--surface-card);
+  border-bottom: 2px double var(--border-medium);
+  box-shadow: var(--shadow-sm);
   position: relative;
-  z-index: 100;
+  z-index: var(--z-sticky);
 }
 
 .editor-header::before {
@@ -25,8 +25,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z' fill='%23d5b878' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
-  opacity: 0.3;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z' fill='%23d5b878' fill-opacity='0.04' fill-rule='evenodd'/%3E%3C/svg%3E");
+  opacity: 0.2;
   pointer-events: none;
   z-index: 0;
 }
@@ -38,18 +38,18 @@
 
 .header-left h2 {
   margin: 0 0 5px 0;
-  font-size: 24px;
-  color: #7b2d26;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 22px;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .header-left p {
   margin: 0;
-  color: #5e2612;
+  color: var(--text-secondary);
   font-size: 14px;
-  font-family: 'Bookman Old Style', Georgia, serif;
+  font-family: var(--font-body);
   font-style: italic;
 }
 
@@ -64,14 +64,13 @@
 .editor-button {
   padding: 10px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -85,48 +84,48 @@
 }
 
 .editor-button.primary {
-  background-color: #7b2d26;
+  background-color: var(--color-primary);
   color: white;
-  border: 2px solid #7b2d26;
+  border: 2px solid var(--color-primary);
 }
 
 .editor-button.primary:hover:not(:disabled) {
-  background-color: #9a3c34;
-  border-color: #9a3c34;
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(123, 45, 38, 0.3);
 }
 
 .editor-button.secondary {
-  background-color: #f8f5e9;
-  color: #5e2612;
-  border: 2px solid #d5b78a;
+  background-color: var(--surface-inset);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-light);
 }
 
 .editor-button.secondary:hover:not(:disabled) {
-  background-color: #f0e6d2;
-  border-color: #a67c52;
+  background-color: var(--surface-page);
+  border-color: var(--border-medium);
   transform: translateY(-1px);
 }
 
 .editor-button:not(.secondary):not(.primary) {
-  background-color: #556b2f;
+  background-color: var(--color-green);
   color: white;
-  border: 2px solid #556b2f;
+  border: 2px solid var(--color-green);
 }
 
 .editor-button:not(.secondary):not(.primary):hover:not(:disabled) {
-  background-color: #6b8e23;
-  border-color: #6b8e23;
+  background-color: var(--color-green-hover);
+  border-color: var(--color-green-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(85, 107, 47, 0.3);
+  box-shadow: 0 4px 8px rgba(74, 103, 65, 0.3);
 }
 
 .editor-content {
   flex: 1;
   position: relative;
   overflow: hidden;
-  height: calc(100vh - 80px); /* Account for header height */
+  height: calc(100vh - 80px);
 }
 
 .loading {
@@ -135,19 +134,19 @@
   align-items: center;
   height: 400px;
   font-size: 24px;
-  color: #7b2d26;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
-  background-color: #fffaed;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  background-color: var(--surface-card);
 }
 
 .error-message {
   background-color: #fdecea;
-  border-left: 4px solid #7b2d26;
-  color: #7b2d26;
+  border-left: 4px solid var(--color-primary);
+  color: var(--color-primary);
   padding: 20px 25px;
   margin: 20px;
-  border-radius: 6px;
-  font-family: 'Bookman Old Style', Georgia, serif;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
   font-size: 16px;
 }
 
@@ -156,15 +155,15 @@
   .editor-header {
     padding: 12px 20px;
   }
-  
+
   .header-left h2 {
     font-size: 20px;
   }
-  
+
   .header-actions {
     gap: 8px;
   }
-  
+
   .editor-button {
     padding: 8px 12px;
     font-size: 12px;
@@ -179,19 +178,19 @@
     padding: 15px;
     text-align: center;
   }
-  
+
   .header-actions {
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
   }
-  
+
   .editor-button {
     flex: 1;
     min-width: 120px;
     max-width: 150px;
   }
-  
+
   .editor-content {
     height: calc(100vh - 120px);
   }
@@ -202,12 +201,12 @@
     flex-direction: column;
     width: 100%;
   }
-  
+
   .editor-button {
     width: 100%;
     max-width: none;
   }
-  
+
   .editor-content {
     height: calc(100vh - 180px);
   }

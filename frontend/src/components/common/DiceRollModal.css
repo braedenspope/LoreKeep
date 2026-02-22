@@ -1,26 +1,25 @@
-/* Create this file: frontend/src/components/common/DiceRollModal.css */
-
+/* DiceRollModal.css */
 .dice-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
+  z-index: var(--z-modal);
 }
 
 .dice-modal {
-  background-color: #fffaed;
-  border-radius: 8px;
+  background-color: var(--surface-card);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-  border: 8px double #a67c52;
-  font-family: 'Bookman Old Style', Georgia, serif;
+  box-shadow: var(--shadow-overlay);
+  border: 3px double var(--border-medium);
+  font-family: var(--font-body);
   position: relative;
 }
 
@@ -31,11 +30,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
-  opacity: 0.2;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d5b878' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+  opacity: 0.15;
   pointer-events: none;
   z-index: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .dice-modal-header {
@@ -43,23 +42,24 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 25px 15px;
-  border-bottom: 1px solid #d5b78a;
+  border-bottom: 1px solid var(--border-light);
   position: relative;
   z-index: 1;
 }
 
 .dice-modal-header h3 {
   margin: 0;
-  color: #7b2d26;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  color: var(--color-primary);
+  font-family: var(--font-display);
   font-size: 20px;
+  font-weight: 700;
 }
 
 .dice-modal-close {
   background: none;
   border: none;
   font-size: 24px;
-  color: #7b2d26;
+  color: var(--color-primary);
   cursor: pointer;
   padding: 0;
   width: 30px;
@@ -70,7 +70,7 @@
 }
 
 .dice-modal-close:hover {
-  color: #9a3c34;
+  color: var(--color-primary-hover);
 }
 
 .dice-modal-content {
@@ -83,9 +83,9 @@
   text-align: center;
   font-size: 18px;
   font-weight: bold;
-  color: #5e2612;
+  color: var(--text-secondary);
   margin-bottom: 15px;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  font-family: var(--font-display);
 }
 
 .dice-rolls {
@@ -98,22 +98,22 @@
 
 .dice-label {
   font-weight: bold;
-  color: #5e2612;
+  color: var(--text-secondary);
   margin-right: 10px;
 }
 
 .individual-roll {
-  background-color: #f8f5e9;
-  border: 2px solid #d5b78a;
-  border-radius: 6px;
+  background-color: var(--surface-inset);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: 8px 12px;
   margin: 0 5px;
   font-size: 18px;
   font-weight: bold;
-  color: #3e2723;
+  color: var(--text-primary);
   min-width: 35px;
   text-align: center;
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .dice-modifier {
@@ -130,11 +130,11 @@
 }
 
 .modifier.positive {
-  color: #2e5339;
+  color: var(--color-success);
 }
 
 .modifier.negative {
-  color: #7b2d26;
+  color: var(--color-primary);
 }
 
 .dice-total {
@@ -143,23 +143,23 @@
   justify-content: center;
   margin: 20px 0;
   padding: 15px;
-  background-color: #f8f5e9;
-  border: 2px solid #a67c52;
-  border-radius: 8px;
+  background-color: var(--surface-inset);
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-lg);
 }
 
 .total-value {
   font-size: 32px;
   font-weight: bold;
-  color: #7b2d26;
+  color: var(--color-primary);
   margin-left: 10px;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
+  font-family: var(--font-display);
 }
 
 .dice-breakdown {
   text-align: center;
   font-style: italic;
-  color: #5e2612;
+  color: var(--text-secondary);
   margin-top: 10px;
 }
 
@@ -171,18 +171,18 @@
 }
 
 .dice-close-btn {
-  background-color: #7b2d26;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-family: 'Cinzel', 'Bookman Old Style', Georgia, serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.5px;
   transition: background-color 0.2s;
 }
 
 .dice-close-btn:hover {
-  background-color: #9a3c34;
+  background-color: var(--color-primary-hover);
 }

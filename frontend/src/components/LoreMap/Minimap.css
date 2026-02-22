@@ -1,20 +1,21 @@
+/* Minimap.css */
 .minimap {
   position: absolute;
   top: 16px;
   left: 16px;
   width: 200px;
   height: 140px;
-  background: rgba(255, 250, 237, 0.9);
-  border: 2px solid #a67c52;
-  border-radius: 6px;
+  background: rgba(250, 247, 239, 0.9);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
   z-index: 50;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .minimap:hover {
-  background: rgba(255, 250, 237, 0.95);
+  background: rgba(250, 247, 239, 0.95);
 }
 
 .minimap-label {
@@ -22,9 +23,8 @@
   top: 4px;
   left: 6px;
   font-size: 9px;
-  color: #a67c52;
-  font-family: 'Cinzel', serif;
-  text-transform: uppercase;
+  color: var(--border-medium);
+  font-family: var(--font-display);
   letter-spacing: 0.5px;
   pointer-events: none;
   z-index: 2;
@@ -35,23 +35,23 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #8b4513;
+  background: var(--text-tertiary);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
 .minimap-event-dot.party-location {
-  background: #d4a017;
+  background: var(--color-gold);
   width: 8px;
   height: 8px;
-  box-shadow: 0 0 4px rgba(212, 160, 23, 0.5);
+  box-shadow: 0 0 4px rgba(201, 162, 39, 0.5);
 }
 
 .minimap-event-dot.selected {
-  background: #c0392b;
+  background: var(--color-primary);
   width: 8px;
   height: 8px;
-  box-shadow: 0 0 4px rgba(192, 57, 43, 0.5);
+  box-shadow: 0 0 4px rgba(123, 45, 38, 0.5);
 }
 
 .minimap-viewport-rect {

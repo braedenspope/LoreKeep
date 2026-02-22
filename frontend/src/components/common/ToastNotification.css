@@ -1,8 +1,9 @@
+/* ToastNotification.css */
 .toast-stack {
   position: fixed;
   top: 80px;
   right: 20px;
-  z-index: 3000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -14,12 +15,12 @@
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  background-color: #fffaed;
-  border: 3px solid #a67c52;
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  font-family: 'Bookman Old Style', Georgia, serif;
-  color: #3e2723;
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-body);
+  color: var(--text-primary);
   animation: toast-slide-in 0.3s ease-out;
   position: relative;
 }
@@ -32,7 +33,7 @@
   right: 0;
   bottom: 0;
   background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
-  opacity: 0.3;
+  opacity: 0.2;
   pointer-events: none;
   z-index: 0;
   border-radius: 3px;
@@ -44,11 +45,11 @@
 }
 
 .toast-success {
-  border-left: 5px solid #2e5339;
+  border-left: 3px solid var(--color-success);
 }
 
 .toast-error {
-  border-left: 5px solid #7b2d26;
+  border-left: 3px solid var(--color-primary);
 }
 
 .toast-icon {
@@ -57,11 +58,11 @@
 }
 
 .toast-success .toast-icon {
-  color: #2e5339;
+  color: var(--color-success);
 }
 
 .toast-error .toast-icon {
-  color: #7b2d26;
+  color: var(--color-primary);
 }
 
 .toast-message {
@@ -74,7 +75,7 @@
   background: none;
   border: none;
   font-size: 20px;
-  color: #a67c52;
+  color: var(--border-medium);
   cursor: pointer;
   padding: 0;
   line-height: 1;
@@ -83,7 +84,7 @@
 }
 
 .toast-close:hover {
-  color: #7b2d26;
+  color: var(--color-primary);
 }
 
 @keyframes toast-slide-in {

@@ -41,7 +41,7 @@ const ConnectionRenderer = ({ connections, events, connectionStart, containerRef
         y1={fromEdge.y}
         x2={toEdge.x}
         y2={toEdge.y}
-        stroke={connectionStart && connectionStart.id === fromEvent.id ? "#3498db" : "#8b4513"}
+        stroke={connectionStart && connectionStart.id === fromEvent.id ? "#5a7a8a" : "#8b4513"}
         strokeWidth="2"
         markerEnd="url(#arrowhead)"
       />
