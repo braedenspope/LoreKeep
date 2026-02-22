@@ -43,73 +43,82 @@ const LoreMapEditor = ({ user }) => {
     setLoreMap(updatedMap);
   };
 
-  const handleSaveAndReturn = async () => {
-    try {
-      setSaving(true);
-      
-      // Save each event that doesn't have an ID (new events)
-      for (const event of loreMap.events.filter(e => !e.id || e.id > 1000000)) {
-        await fetch(`${config.apiUrl}/api/loremaps/${id}/events`, {
+  const saveAllChanges = async () => {
+    // Save new events, update existing events, and save new connections in parallel
+    const newEventPromises = loreMap.events
+      .filter(e => !e.id || e.id > 1000000)
+      .map(event =>
+        fetch(`${config.apiUrl}/api/loremaps/${id}/events`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             title: event.title,
             description: event.description,
             location: event.location,
-            position: {
-              x: event.position.x,
-              y: event.position.y
-            },
-            is_party_location: event.isPartyLocation
+            position: { x: event.position.x, y: event.position.y },
+            is_party_location: event.isPartyLocation,
+            dm_notes: event.dm_notes || '',
+            order_number: event.order_number || null
           })
-        });
-      }
-      
-      // Update existing events
-      for (const event of loreMap.events.filter(e => e.id && e.id <= 1000000)) {
-        await fetch(`${config.apiUrl}/api/events/${event.id}`, {
+        })
+      );
+
+    const existingEventPromises = loreMap.events
+      .filter(e => e.id && e.id <= 1000000)
+      .map(event =>
+        fetch(`${config.apiUrl}/api/events/${event.id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             title: event.title,
             description: event.description,
             location: event.location,
-            position: {
-              x: event.position.x,
-              y: event.position.y
-            },
-            is_party_location: event.isPartyLocation
+            position: { x: event.position.x, y: event.position.y },
+            is_party_location: event.isPartyLocation,
+            dm_notes: event.dm_notes || '',
+            order_number: event.order_number || null
           })
-        });
-      }
-      
-      // Save each connection that doesn't have an ID (new connections)
-      for (const conn of loreMap.connections.filter(c => !c.id || c.id > 1000000)) {
-        await fetch(`${config.apiUrl}/api/loremaps/${id}/connections`, {
+        })
+      );
+
+    const newConnectionPromises = loreMap.connections
+      .filter(c => !c.id || c.id > 1000000)
+      .map(conn =>
+        fetch(`${config.apiUrl}/api/loremaps/${id}/connections`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             from: conn.from,
             to: conn.to,
-            description: conn.description || ''
+            description: conn.description || '',
+            connection_type: conn.connection_type || 'default'
           })
-        });
-      }
-      
-      showNotification('Campaign saved successfully!', 'success', { navigateTo: '/dashboard' });
+        })
+      );
 
+    const results = await Promise.all([
+      ...newEventPromises,
+      ...existingEventPromises,
+      ...newConnectionPromises
+    ]);
+
+    const failed = results.find(r => !r.ok);
+    if (failed) {
+      throw new Error('Some items failed to save');
+    }
+  };
+
+  const handleSaveAndReturn = async () => {
+    try {
+      setSaving(true);
+      await saveAllChanges();
+      showNotification('Campaign saved successfully!', 'success');
+      navigate('/dashboard');
     } catch (err) {
       showNotification('Failed to save changes. Please try again.', 'error');
-    } finally {
       setSaving(false);
     }
   };
@@ -117,65 +126,7 @@ const LoreMapEditor = ({ user }) => {
   const handleQuickSave = async () => {
     try {
       setSaving(true);
-      
-      // Save each event that doesn't have an ID (new events)
-      for (const event of loreMap.events.filter(e => !e.id || e.id > 1000000)) {
-        await fetch(`${config.apiUrl}/api/loremaps/${id}/events`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            title: event.title,
-            description: event.description,
-            location: event.location,
-            position: {
-              x: event.position.x,
-              y: event.position.y
-            },
-            is_party_location: event.isPartyLocation
-          })
-        });
-      }
-      
-      // Update existing events
-      for (const event of loreMap.events.filter(e => e.id && e.id <= 1000000)) {
-        await fetch(`${config.apiUrl}/api/events/${event.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            title: event.title,
-            description: event.description,
-            location: event.location,
-            position: {
-              x: event.position.x,
-              y: event.position.y
-            },
-            is_party_location: event.isPartyLocation
-          })
-        });
-      }
-      
-      // Save each connection that doesn't have an ID (new connections)
-      for (const conn of loreMap.connections.filter(c => !c.id || c.id > 1000000)) {
-        await fetch(`${config.apiUrl}/api/loremaps/${id}/connections`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            from: conn.from,
-            to: conn.to,
-            description: conn.description || ''
-          })
-        });
-      }
-      
+      await saveAllChanges();
       await fetchLoreMap();
       showNotification('Campaign saved successfully!', 'success');
     } catch (err) {
