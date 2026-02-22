@@ -42,7 +42,7 @@ class EventConnection(db.Model):
 def run_migrations(db):
     """Add new columns to existing tables safely."""
     migrations = [
-        ("event", "is_completed", "BOOLEAN DEFAULT 0"),
+        ("event", "is_completed", "BOOLEAN DEFAULT FALSE"),
         ("event", "dm_notes", "TEXT"),
         ("event", "order_number", "INTEGER"),
         ("event_connection", "connection_type", "VARCHAR(20) DEFAULT 'default'"),
